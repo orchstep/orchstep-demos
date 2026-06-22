@@ -1,0 +1,5 @@
+# orchstep run show --env dev   ->  defaults.yml + dev.yml
+env_name: dev
+target: dev-cluster
+db_host: dev-db
+log_level: debug

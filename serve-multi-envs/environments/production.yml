@@ -1,0 +1,6 @@
+# orchstep run show --env production
+env_name: production
+target: prod-cluster
+replicas: 10
+db_host: prod-db
+log_level: error

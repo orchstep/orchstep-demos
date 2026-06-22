@@ -1,0 +1,57 @@
+name: live-demo
+desc: A deliberately slow pipeline so you can WATCH the LIVE graph light up step by step.
+defaults: { target: production, version: "2.4.0", mode: standard }
+env_groups:                         # shared values across a family of environments
+  nonprod:
+    vars: { monitoring: basic, alerts: slack-dev }
+  prod:
+    vars: { monitoring: full, alerts: pagerduty }
+environments:                       # per-target value bundles, selected with --env
+  dev:
+    group: nonprod
+    vars: { target: dev-cluster, version: "2.4.0-dev" }
+  staging:
+    group: nonprod
+    vars: { target: staging-cluster, version: "2.4.0-rc1" }
+  production:
+    group: prod
+    vars: { target: prod-cluster }
+dotenv:                             # OS env loaded for external tools
+  - common.env                      # shared baseline (always)
+  - "secrets.local.env?"            # optional, git-ignored (skipped if absent)
+tasks:
+  deploy:
+    desc: Slow multi-stage deploy — each step waits, so the LIVE graph is visible
+    vars:                       # task-level vars → show up under TASK in the inspect panel
+      tier: backend
+      release_channel: stable
+    steps:
+      - { name: checkout,   func: shell, do: 'echo "checking out {{ vars.version }}"; sleep 2' }
+      - name: build
+        vars:                   # step-level vars → show up under STEP for the build step
+          optimize: "true"
+          region: eu-west-1
+        func: shell
+        do: 'echo "building {{ vars.version }} (tier={{ vars.tier }} region={{ vars.region }})"; sleep 3'
+      - { name: unit_tests, func: shell, do: 'echo "running unit tests"; sleep 3' }
+      - { name: scan,       func: shell, do: 'echo "security scan clean"; sleep 2' }
+      - name: gate
+        if: '{{ eq vars.mode "canary" }}'
+        then: [ { name: canary, func: shell, do: 'echo "canary 10%"; sleep 2' } ]
+        else: [ { name: full,   func: shell, do: 'echo "full rollout to {{ vars.target }}"; sleep 3' } ]
+      - { name: verify,     func: shell, do: 'echo "verifying health"; sleep 2' }
+      - { name: notify,     func: shell, do: 'echo "deploy {{ vars.version }} complete"' }
+  quick:
+    desc: A fast task (instant) — for comparison
+    steps:
+      - { name: ping, func: shell, do: 'echo "pong"' }
+  envdemo:
+    desc: Shows the inspect ENV filter — only referenced vars appear; secrets masked
+    env:
+      DEPLOY_REGION: eu-west-1        # declared → relevant
+      API_TOKEN: super-secret-value   # declared + matches *token* → relevant but MASKED
+    steps:
+      - name: show_env
+        func: shell
+        do: 'echo "region={{ env.DEPLOY_REGION }} home={{ env.HOME }} token=[hidden]"'
+        # references DEPLOY_REGION + HOME → both relevant; the ~80 other OS vars are dropped

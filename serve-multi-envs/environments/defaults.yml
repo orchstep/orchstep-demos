@@ -1,0 +1,5 @@
+# Always loaded, even without --env (the shared baseline for every environment).
+target: localhost
+replicas: 1
+db_host: local-db
+log_level: info

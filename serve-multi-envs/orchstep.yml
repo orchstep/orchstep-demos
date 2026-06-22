@@ -1,0 +1,11 @@
+name: multi-envs
+desc: Externalized env config (Style 2) — per-environment files + defaults.yml, selected with simple --env names
+env_config:
+  env_dir: environments        # each environment is a file under environments/
+tasks:
+  show:
+    desc: Print the values resolved for the selected environment
+    steps:
+      - name: report
+        func: shell
+        do: 'echo "env={{ vars.env_name }} target={{ vars.target }} replicas={{ vars.replicas }} db={{ vars.db_host }} log={{ vars.log_level }}"'

@@ -1,0 +1,39 @@
+name: serve-sandbox
+desc: A playground workflow for exploring `orchstep serve`.
+
+defaults:
+  target: staging
+  version: "1.4.0"
+  region: us-east-1
+
+tasks:
+  deploy:
+    desc: Build, test, scan and ship the service (good live-flow demo)
+    steps:
+      - { name: checkout, func: shell, do: 'echo "checkout {{ vars.version }} for {{ vars.target }}"; sleep 1' }
+      - { name: build,    func: shell, do: 'echo "building {{ vars.version }}"; sleep 1' }
+      - { name: test,     func: shell, do: 'echo "running tests"; sleep 2' }
+      - { name: scan,     func: shell, do: 'echo "security scan clean"; sleep 1' }
+      - { name: release,  func: shell, do: 'echo "release {{ vars.version }} -> {{ vars.target }} ({{ vars.region }})"' }
+
+  migrate:
+    desc: Quick database migration (fast run)
+    steps:
+      - { name: backup, func: shell, do: 'echo "snapshot db"' }
+      - { name: apply,  func: shell, do: 'echo "apply 3 migrations"; sleep 1' }
+      - { name: verify, func: shell, do: 'echo "schema verified"' }
+
+  long-job:
+    desc: A slower job, nice for watching live log streaming + follow
+    steps:
+      - { name: stage1, func: shell, do: 'for i in 1 2 3; do echo "stage 1 tick $i"; sleep 1; done' }
+      - { name: stage2, func: shell, do: 'for i in 1 2 3; do echo "stage 2 tick $i"; sleep 1; done' }
+      - { name: done,   func: shell, do: 'echo "all stages complete"' }
+
+  flaky:
+    desc: Demonstrates a FAILED run (red node in the flow graph)
+    steps:
+      - { name: prepare, func: shell, do: 'echo "preparing"; sleep 1' }
+      - { name: probe,   func: shell, do: 'echo "probing endpoint"; sleep 1' }
+      - { name: gate,    func: shell, do: 'echo "health check failing"; exit 1' }
+      - { name: cleanup, func: shell, do: 'echo "this step never runs after the failure"' }

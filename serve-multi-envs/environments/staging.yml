@@ -1,0 +1,5 @@
+# orchstep run show --env staging
+env_name: staging
+target: staging-cluster
+replicas: 2
+db_host: staging-db
