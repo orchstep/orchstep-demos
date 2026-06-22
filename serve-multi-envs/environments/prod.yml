@@ -1,0 +1,3 @@
+# group: prod
+monitoring: full
+alerts: pagerduty

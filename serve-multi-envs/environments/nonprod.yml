@@ -1,0 +1,3 @@
+# group: nonprod (shared by dev + staging)
+monitoring: basic
+alerts: slack-dev

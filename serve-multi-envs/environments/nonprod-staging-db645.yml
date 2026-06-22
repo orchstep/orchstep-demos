@@ -1,0 +1,3 @@
+# instance: db645 (most specific, wins)
+db_shard: "645"
+target: staging-cluster-db645

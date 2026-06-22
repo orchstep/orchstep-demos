@@ -1,11 +1,36 @@
 name: multi-envs
-desc: Externalized env config (Style 2) — per-environment files + defaults.yml, selected with simple --env names
+desc: Same pipeline as serve-demo, but env config is EXTERNALIZED (Style 2, env_config:) — files follow the defaults / <group> / <group>-<env> naming pattern.
 env_config:
-  env_dir: environments        # each environment is a file under environments/
+  env_dir: environments        # environments live in files under environments/ (NOT inline)
+dotenv:
+  - common.env                 # shared OS env (always); bare name -> environments/common.env
+  - "secrets.local.env?"       # optional, git-ignored
 tasks:
-  show:
-    desc: Print the values resolved for the selected environment
+  deploy:
+    desc: Slow multi-stage deploy — each step waits, so the LIVE graph is visible
+    vars:
+      tier: backend
+      release_channel: stable
     steps:
-      - name: report
+      - { name: checkout,   func: shell, do: 'echo "checking out {{ vars.version }}"; sleep 2' }
+      - name: build
+        vars: { optimize: "true", region: eu-west-1 }
         func: shell
-        do: 'echo "env={{ vars.env_name }} target={{ vars.target }} replicas={{ vars.replicas }} db={{ vars.db_host }} log={{ vars.log_level }}"'
+        do: 'echo "building {{ vars.version }} (tier={{ vars.tier }} region={{ vars.region }})"; sleep 3'
+      - { name: unit_tests, func: shell, do: 'echo "running unit tests"; sleep 3' }
+      - { name: scan,       func: shell, do: 'echo "security scan clean"; sleep 2' }
+      - name: gate
+        if: '{{ eq vars.mode "canary" }}'
+        then: [ { name: canary, func: shell, do: 'echo "canary 10%"; sleep 2' } ]
+        else: [ { name: full,   func: shell, do: 'echo "full rollout to {{ vars.target }}"; sleep 3' } ]
+      - { name: verify,     func: shell, do: 'echo "verifying health"; sleep 2' }
+      - { name: notify,     func: shell, do: 'echo "deploy {{ vars.version }} to {{ vars.target }} ({{ vars.monitoring }} monitoring)"' }
+  quick:
+    desc: A fast task (instant) — for comparison
+    steps:
+      - { name: ping, func: shell, do: 'echo "pong"' }
+  envdemo:
+    desc: Shows the inspect ENV filter — only referenced vars appear; secrets masked
+    env: { DEPLOY_REGION: eu-west-1, API_TOKEN: super-secret-value }
+    steps:
+      - { name: show_env, func: shell, do: 'echo "region={{ env.DEPLOY_REGION }} home={{ env.HOME }} token=[hidden]"' }
