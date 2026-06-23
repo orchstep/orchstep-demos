@@ -1,0 +1,5 @@
+name: deploy-staging
+desc: Deploy to staging (nested task file tasks/deploy/staging.yml)
+steps:
+  - { name: push,   func: shell, do: 'echo "pushing {{ vars.version }} to {{ vars.target }}"; sleep 1' }
+  - { name: verify, func: shell, do: 'echo "staging healthy ({{ vars.monitoring }} monitoring)"; sleep 1' }

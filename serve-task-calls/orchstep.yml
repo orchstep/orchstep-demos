@@ -1,0 +1,22 @@
+name: pipeline-demo
+desc: A pipeline that CALLS auto-discovered task files (tasks/), with external env config — the LIVE graph descends into each called task and lights up the whole chain.
+env_config:
+  env_dir: environments        # environments/ files (defaults / group / group-env)
+dotenv:
+  - common.env
+tasks:
+  pipeline:
+    desc: build → test → deploy (staging or production by env), each step a CALLED task file.
+    steps:
+      - { name: do_build, task: build }
+      - { name: do_test,  task: test }
+      - name: gate
+        desc: production tier deploys to production; otherwise staging
+        if: '{{ eq vars.tier "production" }}'
+        then: [ { name: deploy_prod,    task: deploy-production } ]
+        else: [ { name: deploy_staging, task: deploy-staging } ]
+      - { name: announce, func: shell, do: 'echo "pipeline done: {{ vars.version }} → {{ vars.target }}"' }
+  smoke:
+    desc: A quick standalone task (no task calls).
+    steps:
+      - { name: ping, func: shell, do: 'echo "ok"' }

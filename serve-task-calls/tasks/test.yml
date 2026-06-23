@@ -1,0 +1,5 @@
+name: test
+desc: Run tests (flat task file)
+steps:
+  - { name: unit,        func: shell, do: 'echo "unit tests pass"; sleep 1' }
+  - { name: integration, func: shell, do: 'echo "integration tests pass"; sleep 1' }

@@ -1,0 +1,5 @@
+name: build
+desc: Build the artifact (flat task file)
+steps:
+  - { name: compile, func: shell, do: 'echo "compiling {{ vars.version }}"; sleep 1' }
+  - { name: package, func: shell, do: 'echo "packaging {{ vars.version }}"; sleep 1' }

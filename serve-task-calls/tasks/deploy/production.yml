@@ -1,0 +1,5 @@
+name: deploy-production
+desc: Deploy to production (nested task file tasks/deploy/production.yml)
+steps:
+  - { name: push,  func: shell, do: 'echo "pushing {{ vars.version }} to {{ vars.target }}"; sleep 1' }
+  - { name: smoke, func: shell, do: 'echo "prod smoke ok ({{ vars.monitoring }} monitoring)"; sleep 1' }

@@ -1,0 +1,3 @@
+version: "3.0"
+tier: staging
+region: us-east-1
