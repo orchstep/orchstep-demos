@@ -3,3 +3,4 @@
 # Local-only / git-ignored secrets demonstrated by the env examples
 **/secrets.local.env
 **/localtest/secrets*
+.gstack/
