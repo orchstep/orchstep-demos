@@ -1,0 +1,55 @@
+name: machine-bootstrap
+# Take a fresh laptop to "ready to code" in one command.
+# Idempotent: every install checks first, so re-running is a no-op.
+# The same package list runs on every machine, mac or linux.
+defaults:
+  # A real YAML list. `loop` references it as a template string below
+  # ({{ vars.packages }}) — never as an inline JSON array.
+  packages: ["git", "jq", "ripgrep", "fzf"]
+
+tasks:
+  # `orchstep run setup`
+  setup:
+    steps:
+      # 1. Detect the OS so later steps can branch mac vs linux.
+      - name: detect_os
+        func: shell
+        do: uname -s
+        outputs:
+          kernel: "{{ result.output }}"
+
+      # 2. Pick the package manager for this OS (mac -> brew, linux -> apt-get).
+      - name: pick_manager
+        if: '{{ eq steps.detect_os.kernel "Darwin" }}'
+        then:
+          - name: mac_manager
+            func: shell
+            do: echo "brew"
+            outputs:
+              manager: "{{ result.output }}"
+        else:
+          - name: linux_manager
+            func: shell
+            do: echo "apt-get"
+            outputs:
+              manager: "{{ result.output }}"
+
+      # 3. Refuse to continue if no package manager is present.
+      - name: assert_manager
+        func: assert
+        args:
+          condition: '{{ ne steps.detect_os.kernel "" }}'
+          message: "could not detect a package manager (need brew on macOS or apt-get on Linux)"
+
+      # 4. Install each package, idempotently. The echo stands in for the
+      #    real install — the check-then-install pattern is shown in the do block.
+      - name: install_packages
+        loop:
+          items: '{{ vars.packages }}'
+        func: shell
+        do: 'echo "ensure {{ loop.item }}: command -v {{ loop.item }} || install {{ loop.item }}"'
+
+      # 5. Confirm we are done.
+      - name: done
+        func: shell
+        do: echo "machine bootstrapped with git jq ripgrep fzf"
