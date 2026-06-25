@@ -1,0 +1,13 @@
+# orchstep.lock - Auto-generated, do not edit manually.
+# Pins each module to an immutable commit + content hash for reproducible,
+# tamper-evident builds. Written automatically on first resolve.
+#   orchstep module update   refresh pins to newest allowed versions
+#   orchstep module verify   re-check commit + hash (CI gate)
+
+modules:
+    greeter:
+        source: github.com/orchstep/test-module-single
+        version: 1.1.0
+        tag: v1.1.0
+        commit: 8638d85ce4e043c15de3143b3c4a9aa2b779d38e
+        hash: sha256:25b552a9e02b2fef3b962b0cc0fad85630b986575b27564964450d0363ca248c

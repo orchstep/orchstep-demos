@@ -1,0 +1,18 @@
+name: consume-remote-module
+desc: "Import a versioned module straight from a Git repo and call its exported task."
+
+modules:
+  - name: greeter
+    source: "github.com/orchstep/test-module-single"   # tags: v1.0.0, v1.1.0, v2.0.0
+    version: "^1.0.0"                                   # resolves to v1.1.0
+
+tasks:
+  # `orchstep run hello`
+  hello:
+    desc: "Call the remote module's exported task"
+    steps:
+      - name: greet
+        module: greeter          # the alias from modules:
+        task: hello              # an exported task
+        with:
+          name: "OrchStep"

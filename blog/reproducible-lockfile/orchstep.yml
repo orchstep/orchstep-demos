@@ -1,0 +1,18 @@
+name: reproducible-lockfile
+desc: "Pin remote modules to an immutable commit + content hash with orchstep.lock."
+
+modules:
+  - name: greeter
+    source: "github.com/orchstep/test-module-single"
+    version: "^1.0.0"                                   # resolves to v1.1.0
+
+tasks:
+  # `orchstep run hello`
+  hello:
+    desc: "Run a remote module — pinned by orchstep.lock"
+    steps:
+      - name: greet
+        module: greeter
+        task: hello
+        with:
+          name: "OrchStep"

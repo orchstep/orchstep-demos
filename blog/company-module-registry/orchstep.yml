@@ -1,0 +1,24 @@
+name: company-module-registry
+desc: "Share modules across teams: map a scope to your monorepo, then import @scope/<name>."
+
+# Map your company scope to the monorepo that holds every shared module.
+# The map key is the scope WITHOUT the leading @ (here: mycompany).
+registries:
+  mycompany:
+    url: github.com/orchstep/monorepo-multi-modules
+
+modules:
+  - name: greet
+    source: "@mycompany/module1"   # -> modules/@mycompany/module1, tag module1/vX.Y.Z
+    version: "^1.0.0"
+
+tasks:
+  # `orchstep run main`
+  main:
+    desc: "Call a task from a shared monorepo module"
+    steps:
+      - name: hello
+        module: greet
+        task: greet
+        with:
+          name: "OrchStep"
