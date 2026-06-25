@@ -1,0 +1,30 @@
+name: drift
+# Run terraform plan on a schedule, count what differs from state,
+# and alert only when there's drift.
+defaults:
+  stack: production
+
+tasks:
+  # `orchstep run check`
+  check:
+    steps:
+      - name: plan
+        func: shell
+        do: echo "terraform plan -detailed-exitcode for {{ vars.stack }}"
+        outputs:
+          changes: "2"
+
+      - name: evaluate
+        func: shell
+        do: echo "{{ steps.plan.changes }} resource(s) differ from recorded state"
+
+      - name: alert
+        if: '{{ gt (atoi steps.plan.changes) 0 }}'
+        then:
+          - name: notify
+            func: shell
+            do: echo "DRIFT in {{ vars.stack }} - {{ steps.plan.changes }} change(s)"
+        else:
+          - name: clean
+            func: shell
+            do: echo "no drift in {{ vars.stack }}"

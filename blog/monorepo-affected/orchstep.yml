@@ -1,0 +1,35 @@
+name: monorepo
+# Build only what changed. `detect` reports the affected packages, then we
+# build and test each one in a loop and gate the merge on the result.
+defaults:
+  # In a real repo this list comes from a git diff against the base branch.
+  # Here it is static so the demo runs anywhere.
+  affected:
+    - api
+    - web
+    - billing
+
+tasks:
+  # `orchstep run detect`
+  detect:
+    steps:
+      - name: changed
+        func: shell
+        do: echo "detecting affected packages from the base branch diff"
+      - name: count
+        func: shell
+        do: echo "{{ vars.affected | len }} package(s) affected"
+
+  # `orchstep run ci`
+  ci:
+    steps:
+      - name: detect
+        task: detect
+      - name: per_package
+        func: shell
+        do: echo "building + testing {{ loop.item }}"
+        loop:
+          items: '{{ vars.affected }}'
+      - name: gate
+        func: shell
+        do: echo "all affected packages green — merge allowed"

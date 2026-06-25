@@ -1,0 +1,51 @@
+name: build-pipeline
+# A Makefile's targets, as OrchStep tasks. Prerequisites become `task:` steps;
+# every task is .PHONY by default (no file-timestamp magic).
+defaults:
+  app: checkout
+  bindir: ./bin
+
+tasks:
+  # make deps
+  deps:
+    steps:
+      - name: fetch
+        func: shell
+        do: echo "go mod download"
+
+  # make build  (depends on deps)
+  build:
+    steps:
+      - name: deps
+        task: deps
+      - name: compile
+        func: shell
+        do: echo "go build -o {{ vars.bindir }}/{{ vars.app }}"
+
+  # make test  (depends on build)
+  test:
+    steps:
+      - name: build
+        task: build
+      - name: unit
+        func: shell
+        do: echo "go test ./..."
+
+  # make lint vet  ->  one task, real parallelism (the make -j you always wanted)
+  check:
+    steps:
+      - name: static
+        parallel:
+          - name: lint
+            func: shell
+            do: echo "golangci-lint run"
+          - name: vet
+            func: shell
+            do: echo "go vet ./..."
+
+  # make clean
+  clean:
+    steps:
+      - name: rm
+        func: shell
+        do: echo "rm -rf {{ vars.bindir }}"

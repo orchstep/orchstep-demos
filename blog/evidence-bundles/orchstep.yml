@@ -1,0 +1,49 @@
+name: evidence-bundles
+desc: "Gather compliance artifacts, hash each one, and assemble a sealed bundle."
+defaults:
+  release: "2026.5.0"
+
+tasks:
+  # `orchstep run bundle --var release=2026.6.0`
+  bundle:
+    desc: "Produce a release evidence bundle"
+    steps:
+      - name: collect
+        desc: "Pull every required artifact at once"
+        parallel:
+          - name: tests
+            func: shell
+            do: echo "TEST_REPORT=passed-510-510"
+            outputs:
+              ref: '{{ result.output | regexFind "TEST_REPORT=(.+)" }}'
+          - name: sbom
+            func: shell
+            do: echo "SBOM=312-packages"
+            outputs:
+              ref: '{{ result.output | regexFind "SBOM=(.+)" }}'
+          - name: approvals
+            func: shell
+            do: echo "APPROVALS=2-of-2"
+            outputs:
+              ref: '{{ result.output | regexFind "APPROVALS=(.+)" }}'
+
+      - name: hash
+        func: shell
+        do: echo "sha256 — tests={{ steps.tests.ref }} sbom={{ steps.sbom.ref }} approvals={{ steps.approvals.ref }}"
+        outputs:
+          digest: "{{ result.output }}"
+
+      - name: manifest
+        func: render
+        args:
+          template: |
+            release: {{ vars.release }}
+            tests: {{ steps.tests.ref }}
+            sbom: {{ steps.sbom.ref }}
+            approvals: {{ steps.approvals.ref }}
+        outputs:
+          doc: "{{ result.output }}"
+
+      - name: assemble
+        func: shell
+        do: echo "evidence-{{ vars.release }}.tar.gz sealed from 3 hashed artifacts + manifest"

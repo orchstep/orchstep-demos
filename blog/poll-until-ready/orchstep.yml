@@ -1,0 +1,51 @@
+name: poll-demo
+# "Wait until ready" without an unbounded while loop. Every form here has a
+# built-in stop, so it can never hang a CI runner.
+defaults:
+  service: checkout
+
+tasks:
+  # `orchstep run release`
+  release:
+    steps:
+      - name: deploy
+        func: shell
+        do: echo "rolling out {{ vars.service }}"
+
+      # 1) Fixed settle pause (func: wait, duration mode).
+      - name: settle
+        func: wait
+        args:
+          duration: "1s"
+          message: "letting {{ vars.service }} settle"
+
+      # A health probe whose result the next step polls.
+      - name: probe
+        func: shell
+        do: 'echo "200"'
+        outputs:
+          status: "{{ result.output }}"
+
+      # 2) Poll until a condition holds (func: wait, condition mode).
+      #    Bounded by `timeout` - it fails the step instead of hanging.
+      - name: wait_until_healthy
+        func: wait
+        args:
+          condition: '{{ eq steps.probe.status "200" }}'
+          timeout: "30s"
+          interval: "2s"
+
+      # 3) Keep trying an action until it succeeds (retry, not a while loop).
+      #    Bounded by `max_attempts`.
+      - name: smoke
+        func: shell
+        do: 'echo "smoke check {{ vars.service }} -> ok"'
+        retry:
+          max_attempts: 5
+          interval: "1s"
+          backoff_rate: 2.0
+          when: '!result.success'
+
+      - name: done
+        func: shell
+        do: echo "{{ vars.service }} is ready"

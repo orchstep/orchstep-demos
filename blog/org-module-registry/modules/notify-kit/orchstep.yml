@@ -1,0 +1,12 @@
+name: notify-kit
+desc: "Org-standard release notifications (v0.4.0)."
+defaults:
+  service: "service"
+
+tasks:
+  announce:
+    desc: "Announce a release to the org channels"
+    steps:
+      - name: post
+        func: shell
+        do: echo "notify-kit v0.4.0 — announced release of {{ vars.service }}"

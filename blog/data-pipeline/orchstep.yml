@@ -1,0 +1,53 @@
+name: warehouse
+# Extract three sources in parallel, gate each on quality via a shared module,
+# then load — with a cleanup that always runs, even when a source fails.
+defaults:
+  run_date: "2026-04-23"
+
+modules:
+  - name: quality
+    source: "./modules/quality"
+
+tasks:
+  # `orchstep run etl --var run_date=2026-04-23`
+  etl:
+    steps:
+      # Fan-out: every source extracts at the same time.
+      - name: extract
+        parallel:
+          - name: orders
+            func: shell
+            do: echo "extracting orders for {{ vars.run_date }}"
+          - name: events
+            func: shell
+            do: echo "extracting events for {{ vars.run_date }}"
+          - name: billing
+            func: shell
+            do: echo "extracting billing for {{ vars.run_date }}"
+
+      # Quality gates, reused from the module — one call per dataset.
+      - name: gate_orders
+        module: quality
+        task: check
+        with:
+          dataset: orders
+          min_rows: "100"
+
+      - name: gate_events
+        module: quality
+        task: check
+        with:
+          dataset: events
+          min_rows: "500"
+
+      - name: load
+        func: shell
+        do: echo "loading vetted datasets into the {{ vars.run_date }} partition"
+        catch:
+          - name: alert
+            func: shell
+            do: echo "load failed for {{ vars.run_date }} — paging data on-call"
+        finally:
+          - name: cleanup
+            func: shell
+            do: echo "dropping staging tables for {{ vars.run_date }}"

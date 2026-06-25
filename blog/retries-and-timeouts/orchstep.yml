@@ -1,0 +1,32 @@
+name: retry-demo
+# Retries, backoff and timeouts as syntax - not hand-rolled boilerplate.
+defaults:
+  endpoint: https://api.internal/health
+
+tasks:
+  # `orchstep run publish`
+  publish:
+    steps:
+      - name: push
+        func: shell
+        do: echo "pushing image"
+        timeout: "10s"          # each attempt may take up to 10s
+        total_timeout: "30s"    # whole step, retries included, capped at 30s
+        retry:
+          max_attempts: 4       # total attempts, not extra retries
+          interval: "1s"        # delay before attempt 2
+          backoff_rate: 2.0     # 1s -> 2s -> 4s
+          max_delay: "5s"       # cap the growth
+
+      - name: smoke
+        func: shell
+        do: echo "smoke test {{ vars.endpoint }} -> 200"
+        timeout: "5s"
+        retry:
+          max_attempts: 3
+          interval: "2s"
+          when: '!result.success'   # only retry on failure
+
+      - name: done
+        func: shell
+        do: echo "published"

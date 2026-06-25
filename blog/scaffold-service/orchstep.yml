@@ -1,0 +1,44 @@
+name: scaffold
+# Scaffold a new service: prompt for a name, render files from templates.
+defaults:
+  service: "widget"
+
+tasks:
+  # `orchstep run new`                 (prompts for the name)
+  # `orchstep run new --var service_name=billing`   (no prompt — name supplied)
+  new:
+    desc: "Scaffold a new service from templates"
+    steps:
+      - name: service_name
+        func: prompt
+        args:
+          message: "Service name"
+          type: text
+          default: "{{ vars.service }}"
+        outputs:
+          name: "{{ result.value }}"
+
+      # render produces text from a Go template. Add args.output_file to also
+      # write it to disk; here we keep it in an output so the demo is safe to run.
+      - name: main_go
+        func: render
+        args:
+          template: |
+            package main
+
+            // {{ steps.service_name.name }} service
+            func main() {
+              println("{{ steps.service_name.name }} listening on :8080")
+            }
+        outputs:
+          code: "{{ result.output }}"
+
+      - name: dockerfile
+        func: render
+        do: "FROM golang:1.22 AS build  # {{ steps.service_name.name }}"
+        outputs:
+          content: "{{ result.output }}"
+
+      - name: summary
+        func: shell
+        do: echo "scaffolded {{ steps.service_name.name }}/main.go and Dockerfile"

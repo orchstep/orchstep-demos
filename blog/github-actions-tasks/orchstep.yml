@@ -1,0 +1,38 @@
+name: app
+# The GitHub workflow stays thin: it just calls these tasks.
+# Logic lives here, where you can also run it on your laptop.
+defaults:
+  suite: unit
+
+tasks:
+  # `orchstep run setup`
+  setup:
+    steps:
+      - name: deps
+        func: shell
+        do: echo "restoring dependencies"
+
+  # `orchstep run test --var suite=integration` — one task, matrix-friendly
+  test:
+    steps:
+      - name: run
+        func: shell
+        do: echo "running {{ vars.suite }} suite"
+      - name: annotate
+        if: '{{ eq vars.suite "integration" }}'
+        then:
+          - name: note
+            func: shell
+            do: echo "::notice::integration suite finished"
+
+  # `orchstep run build`
+  build:
+    steps:
+      - name: compile
+        func: shell
+        do: echo "building release artifact"
+        outputs:
+          artifact: "dist/app.tar.gz"
+      - name: report
+        func: shell
+        do: echo "built {{ steps.compile.artifact }}"

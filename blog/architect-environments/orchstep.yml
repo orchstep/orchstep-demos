@@ -1,0 +1,38 @@
+name: reference-stack
+# One workflow, many target environments - the architect's reference deploy.
+defaults:
+  region: us-east-1
+  replicas: "2"
+
+env_groups:
+  app:
+    vars:
+      region: "us-east-1"
+      replicas: "2"
+
+environments:
+  dev:
+    group: app
+    vars:
+      replicas: "1"
+  prod:
+    group: app
+    vars:
+      replicas: "6"
+
+tasks:
+  # `orchstep run provision --env prod`
+  provision:
+    steps:
+      - name: network
+        func: shell
+        do: echo "provisioning network in {{ vars.region }}"
+      - name: data
+        func: shell
+        do: echo "provisioning managed datastore"
+      - name: app
+        func: shell
+        do: echo "deploying app with {{ vars.replicas }} replicas in {{ vars.region }}"
+      - name: verify
+        func: shell
+        do: echo "smoke check against the reference stack"

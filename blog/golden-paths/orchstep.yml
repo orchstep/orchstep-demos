@@ -1,0 +1,32 @@
+name: golden-paths
+desc: "One sanctioned way to ship a service — the golden path as a module."
+defaults:
+  service: "checkout"
+  target: staging
+
+# The golden path lives in a module so every team ships the same way.
+modules:
+  - name: ship
+    source: "./modules/ship-path"
+
+tasks:
+  # `orchstep run release --var service=payments`
+  release:
+    desc: "Ship a service down the golden path"
+    steps:
+      - name: build
+        module: ship
+        task: build
+        with:
+          service: "{{ vars.service }}"
+      - name: verify
+        module: ship
+        task: verify
+        with:
+          service: "{{ vars.service }}"
+      - name: deploy
+        module: ship
+        task: deploy
+        with:
+          service: "{{ vars.service }}"
+          target: "{{ vars.target }}"

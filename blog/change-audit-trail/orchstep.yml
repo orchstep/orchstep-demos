@@ -1,0 +1,51 @@
+name: change-audit-trail
+desc: "Gate a change behind policy checks and approval, then write a tamper-evident record."
+defaults:
+  change: "CHG-1042"
+  risk: low
+
+tasks:
+  # `orchstep run apply --var change=CHG-1099 --var risk=high`
+  apply:
+    desc: "Apply a change only after policy + approval, then seal the record"
+    steps:
+      - name: policy
+        func: shell
+        do: |
+          echo "policy check: peer-reviewed, has rollback, inside change window"
+        outputs:
+          result: "pass"
+
+      - name: gate
+        func: assert
+        args:
+          condition: 'steps.policy.result === "pass"'
+          message: "change blocked: policy checks must pass"
+
+      - name: approve
+        func: prompt
+        args:
+          message: "Approve {{ vars.change }} (risk {{ vars.risk }})?"
+          type: confirm
+          default: false
+
+      - name: decision
+        if: '{{ eq steps.approve.value "true" }}'
+        then:
+          - name: execute
+            func: shell
+            do: echo "applying {{ vars.change }}"
+        else:
+          - name: hold
+            func: shell
+            do: echo "{{ vars.change }} held — no approval recorded"
+
+      - name: record
+        func: shell
+        do: echo "RECORD={{ vars.change }}|risk={{ vars.risk }}|policy={{ steps.policy.result }}|approved={{ steps.approve.value }}"
+        outputs:
+          line: '{{ result.output | regexFind "RECORD=(.+)" }}'
+
+      - name: seal
+        func: shell
+        do: echo "sha256({{ steps.record.line }}) chained to the prior entry — tamper-evident"

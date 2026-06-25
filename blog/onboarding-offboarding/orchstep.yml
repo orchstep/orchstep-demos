@@ -1,0 +1,39 @@
+name: identity
+# Provision (onboard) and deprovision (offboard) a person across systems.
+# Every step is phrased to be idempotent: running it twice is a no-op.
+defaults:
+  person: jordan
+
+tasks:
+  # `orchstep run onboard --var person=jordan`
+  onboard:
+    steps:
+      - name: account
+        func: shell
+        do: echo "ensuring an SSO account exists for {{ vars.person }}"
+      - name: groups
+        func: shell
+        do: echo "ensuring {{ vars.person }} is in the engineering groups"
+      - name: laptop
+        func: shell
+        do: echo "ensuring a laptop is assigned to {{ vars.person }}"
+      - name: welcome
+        func: shell
+        do: echo "{{ vars.person }} onboarded — sending the welcome checklist"
+
+  # `orchstep run offboard --var person=jordan`
+  offboard:
+    steps:
+      - name: revoke
+        func: shell
+        do: echo "ensuring {{ vars.person }}'s SSO sessions are revoked"
+      - name: groups
+        func: shell
+        do: echo "ensuring {{ vars.person }} is removed from all groups"
+      - name: archive
+        func: shell
+        do: echo "ensuring {{ vars.person }}'s mailbox is archived"
+        finally:
+          - name: record
+            func: shell
+            do: echo "offboarding of {{ vars.person }} recorded for audit"

@@ -1,0 +1,51 @@
+name: incident-runbooks
+desc: "Classify severity, run parallel diagnostics, route by severity, record the incident."
+defaults:
+  signal: "error_rate"
+  sev: "2"
+
+tasks:
+  # `orchstep run respond --var sev=1`
+  respond:
+    desc: "Drive an incident from alert to recorded resolution"
+    steps:
+      - name: classify
+        func: shell
+        do: echo "incident from {{ vars.signal }} classified as SEV{{ vars.sev }}"
+        outputs:
+          level: "{{ vars.sev }}"
+
+      - name: diagnostics
+        desc: "Pull signals from every subsystem at once"
+        parallel:
+          - name: check_api
+            func: shell
+            do: echo "API_ERROR_RATE=high"
+            outputs:
+              status: '{{ result.output | regexFind "API_ERROR_RATE=(.+)" }}'
+          - name: check_db
+            func: shell
+            do: echo "DB_CONNECTIONS=saturated"
+            outputs:
+              status: '{{ result.output | regexFind "DB_CONNECTIONS=(.+)" }}'
+          - name: check_queue
+            func: shell
+            do: echo "QUEUE_DEPTH=growing"
+            outputs:
+              status: '{{ result.output | regexFind "QUEUE_DEPTH=(.+)" }}'
+
+      - name: route
+        if: '{{ le (atoi vars.sev) 1 }}'
+        then:
+          - name: page
+            func: shell
+            do: echo "SEV1 — paging on-call + incident commander, opening a bridge"
+        else:
+          - name: ticket
+            func: shell
+            do: echo "SEV{{ vars.sev }} — filed a ticket for business-hours follow-up"
+
+      - name: record
+        func: shell
+        do: |
+          echo "incident record: sev={{ steps.classify.level }} api={{ steps.check_api.status }} db={{ steps.check_db.status }} queue={{ steps.check_queue.status }}"

@@ -1,0 +1,45 @@
+name: team-ops
+# The repeatable rituals a team lead owns: onboarding + release checklist.
+defaults:
+  service: payments
+  tier: staging
+
+tasks:
+  # `orchstep run onboard --var name=jordan`
+  onboard:
+    steps:
+      - name: accounts
+        func: shell
+        do: echo "requesting accounts for {{ vars.name }}"
+      - name: repos
+        func: shell
+        do: echo "granting {{ vars.name }} read on {{ vars.service }} repos"
+      - name: tools
+        func: shell
+        do: echo "installing the standard toolchain"
+      - name: first_task
+        func: shell
+        do: echo "assigned a good-first-issue to {{ vars.name }}"
+
+  # `orchstep run release-check --var tier=production`
+  release-check:
+    steps:
+      - name: tests_green
+        func: shell
+        do: echo "CI green on main"
+      - name: changelog
+        func: shell
+        do: echo "CHANGELOG updated"
+      - name: signoff
+        if: '{{ eq vars.tier "production" }}'
+        then:
+          - name: require_approval
+            func: shell
+            do: echo "production tier - explicit sign-off required"
+        else:
+          - name: auto
+            func: shell
+            do: echo "{{ vars.tier }} - proceeding without manual sign-off"
+      - name: done
+        func: shell
+        do: echo "release checklist complete for {{ vars.tier }}"

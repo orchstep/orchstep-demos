@@ -1,0 +1,54 @@
+name: backups
+# Backup, verify integrity, and rehearse a restore — with alerts on failure.
+defaults:
+  store: backups/db
+  keep: "14"
+
+tasks:
+  # `orchstep run backup`
+  backup:
+    steps:
+      - name: dump
+        func: shell
+        do: echo "pg_dump | gzip > db.sql.gz"
+      - name: upload
+        func: shell
+        do: echo "upload db.sql.gz to {{ vars.store }}"
+        retry:
+          max_attempts: 3
+          interval: "2s"
+          backoff_rate: 2.0
+        catch:
+          - name: alert
+            func: shell
+            do: echo "ALERT - backup upload to {{ vars.store }} failed"
+      - name: verify
+        func: shell
+        do: echo "gunzip -t db.sql.gz (integrity check)"
+      - name: prune
+        func: shell
+        do: echo "keep the {{ vars.keep }} most recent backups"
+
+  # `orchstep run restore-drill` — prove the backups actually restore.
+  restore-drill:
+    steps:
+      - name: fetch
+        func: shell
+        do: echo "fetch newest backup from {{ vars.store }}"
+        outputs:
+          rows: "4211"
+      - name: restore
+        func: shell
+        do: echo "restore into a scratch database"
+        catch:
+          - name: alert
+            func: shell
+            do: echo "ALERT - restore drill failed — backups are not trustworthy"
+      - name: check
+        func: assert
+        args:
+          condition: '{{ gt (atoi steps.fetch.rows) 0 }}'
+          message: "restored database should not be empty"
+      - name: done
+        func: shell
+        do: echo "restore drill passed with {{ steps.fetch.rows }} rows"

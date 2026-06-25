@@ -1,0 +1,3 @@
+# group: prod
+replicas: 10
+monitoring: full

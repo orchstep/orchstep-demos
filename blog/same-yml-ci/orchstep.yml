@@ -1,0 +1,45 @@
+name: ci
+# One file. Same `orchstep run ci` on your laptop and on the runner.
+# Plain stdout, real exit codes, no prompts — nothing CI-specific lives here.
+defaults:
+  target: staging
+
+tasks:
+  # `orchstep run ci`
+  ci:
+    steps:
+      - name: lint
+        task: lint
+      - name: test
+        task: test
+      - name: build
+        task: build
+      - name: summary
+        func: shell
+        do: echo "ci passed for target={{ vars.target }}"
+
+  lint:
+    steps:
+      - name: vet
+        func: shell
+        do: echo "linting sources"
+
+  test:
+    steps:
+      - name: unit
+        func: shell
+        do: echo "running unit tests"
+      - name: integration
+        func: shell
+        do: echo "running integration tests"
+
+  build:
+    steps:
+      - name: compile
+        func: shell
+        do: echo "building artifact for {{ vars.target }}"
+        outputs:
+          artifact: "dist/app-{{ vars.target }}.tar.gz"
+      - name: report
+        func: shell
+        do: echo "built {{ steps.compile.artifact }}"

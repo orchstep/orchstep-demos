@@ -1,0 +1,40 @@
+name: secresponse
+# Scan an image, triage by severity, open a ticket when it crosses the bar,
+# and notify the channel — one ordered path instead of five manual tabs.
+defaults:
+  image: ghcr.io/acme/api:1.4.0
+  threshold: high
+
+tasks:
+  # `orchstep run respond --var image=ghcr.io/acme/api:2.0.0`
+  respond:
+    steps:
+      - name: scan
+        func: shell
+        do: echo "scanning {{ vars.image }} for known CVEs"
+        retry:
+          max_attempts: 3
+          interval: "1s"
+          backoff_rate: 2.0
+        outputs:
+          severity: high
+
+      - name: triage
+        if: '{{ eq steps.scan.severity vars.threshold }}'
+        then:
+          - name: ticket
+            func: shell
+            do: echo "opening a {{ steps.scan.severity }}-severity ticket for {{ vars.image }}"
+            outputs:
+              id: "SEC-4711"
+          - name: notify
+            func: shell
+            do: echo "posting {{ steps.ticket.id }} ({{ vars.image }}) to the security channel"
+        else:
+          - name: log
+            func: shell
+            do: echo "{{ vars.image }} below the {{ vars.threshold }} bar — logging only"
+        finally:
+          - name: audit
+            func: shell
+            do: echo "scan of {{ vars.image }} recorded in the audit trail"

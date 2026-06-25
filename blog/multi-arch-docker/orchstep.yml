@@ -1,0 +1,29 @@
+name: docker
+# orchstep run build --var version=1.3.0
+defaults:
+  image: ghcr.io/acme/api
+  version: "1.2.0"
+  platforms:
+    - linux/amd64
+    - linux/arm64
+    - linux/arm/v7
+
+tasks:
+  build:
+    steps:
+      # One build per platform — the list lives in vars, not copy-pasted steps.
+      - name: build_each
+        loop:
+          items: '{{ vars.platforms }}'
+        func: shell
+        do: echo "building {{ vars.image }}:{{ vars.version }} for {{ loop.item }}"
+
+      - name: push_each
+        loop:
+          items: '{{ vars.platforms }}'
+        func: shell
+        do: echo "pushing {{ vars.image }}:{{ vars.version }} ({{ loop.item }})"
+
+      - name: manifest
+        func: shell
+        do: echo "creating multi-arch manifest {{ vars.image }}:{{ vars.version }}"

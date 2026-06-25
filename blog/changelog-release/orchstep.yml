@@ -1,0 +1,35 @@
+name: release
+# Cut a release from the terminal: bump version, generate changelog, tag, build.
+# Always `--dry-run` first to see the resolved plan before anything happens.
+defaults:
+  level: patch          # patch | minor | major
+  current: "1.3.0"
+
+tasks:
+  # `orchstep run release --var level=minor --dry-run`
+  release:
+    desc: "Bump version, changelog, tag, and build"
+    steps:
+      # Pure computation in a sandboxed VM — no shell, no side effects.
+      - name: bump
+        func: transform
+        do: |
+          const p = vars.current.split(".").map(Number);
+          if (vars.level === "major") { p[0]++; p[1] = 0; p[2] = 0; }
+          else if (vars.level === "minor") { p[1]++; p[2] = 0; }
+          else { p[2]++; }
+          return { version: p.join(".") };
+
+      - name: changelog
+        func: shell
+        do: echo "generating changelog for v{{ steps.bump.version }}"
+        outputs:
+          notes: "CHANGELOG-{{ steps.bump.version }}.md"
+
+      - name: tag
+        func: shell
+        do: echo "git tag v{{ steps.bump.version }} (from {{ steps.changelog.notes }})"
+
+      - name: build
+        func: shell
+        do: echo "building release artifacts for v{{ steps.bump.version }}"

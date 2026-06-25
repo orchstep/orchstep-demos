@@ -1,0 +1,30 @@
+name: finops
+# Pull yesterday's cloud spend, normalize it, write a report, then gate:
+# fail loudly if the day blew past budget so the alert can't be ignored.
+defaults:
+  report_date: "2026-04-28"
+  budget_usd: "5000"
+
+tasks:
+  # `orchstep run report --var report_date=2026-04-28`
+  report:
+    steps:
+      - name: pull
+        func: shell
+        do: echo "pulling cost-explorer rows for {{ vars.report_date }}"
+        outputs:
+          total: "4200"
+
+      - name: transform
+        func: shell
+        do: echo "rolling {{ steps.pull.total }} USD up by service and team"
+
+      - name: render
+        func: shell
+        do: echo "writing the {{ vars.report_date }} cost report ({{ steps.pull.total }} USD)"
+
+      - name: gate
+        func: assert
+        args:
+          condition: '{{ le (atoi steps.pull.total) (atoi vars.budget_usd) }}'
+          message: "{{ vars.report_date }} spend {{ steps.pull.total }} USD exceeded the {{ vars.budget_usd }} USD budget"

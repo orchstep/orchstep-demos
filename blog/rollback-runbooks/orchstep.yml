@@ -1,0 +1,34 @@
+name: rollback
+# Rehearse first:  orchstep run rollback --var to=2.3.0 --dry-run
+# Then for real:   orchstep run rollback --var to=2.3.0
+defaults:
+  service: api
+  target: production
+  to: "2.3.0"
+
+tasks:
+  rollback:
+    steps:
+      - name: locate
+        func: shell
+        do: echo "selecting last-known-good {{ vars.service }} {{ vars.to }} on {{ vars.target }}"
+
+      - name: drain
+        func: shell
+        do: echo "draining traffic from {{ vars.service }} on {{ vars.target }}"
+
+      - name: revert
+        func: shell
+        do: echo "reverting {{ vars.service }} to {{ vars.to }}"
+        catch:
+          - name: escalate
+            func: shell
+            do: echo "rollback failed — paging on-call for {{ vars.service }}"
+        finally:
+          - name: notify
+            func: shell
+            do: echo "rollback of {{ vars.service }} to {{ vars.to }} on {{ vars.target }} complete"
+
+      - name: verify
+        func: shell
+        do: echo "verifying {{ vars.service }} health after rollback"

@@ -1,0 +1,33 @@
+name: image
+# A readable multi-stage docker build: build, tag, push (with retry), report.
+defaults:
+  registry: ghcr.io/acme
+  app: api
+  version: "1.0.0"
+
+tasks:
+  # `orchstep run build --var version=2.4.0`
+  build:
+    desc: "Build, tag, and push a multi-stage image"
+    steps:
+      - name: compile
+        func: shell
+        do: echo "docker build --target build -t {{ vars.app }}:builder ."
+
+      - name: assemble
+        func: shell
+        do: echo "docker build --target runtime -t {{ vars.registry }}/{{ vars.app }}:{{ vars.version }} ."
+        outputs:
+          ref: "{{ vars.registry }}/{{ vars.app }}:{{ vars.version }}"
+
+      - name: push
+        func: shell
+        do: echo "docker push {{ steps.assemble.ref }}"
+        retry:
+          max_attempts: 3
+          interval: "1s"
+          backoff_rate: 2.0
+
+      - name: report
+        func: shell
+        do: echo "pushed {{ steps.assemble.ref }}"

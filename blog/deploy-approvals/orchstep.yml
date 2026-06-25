@@ -1,0 +1,31 @@
+name: release
+# One workflow for humans and CI: a confirm prompt gates the publish.
+# Interactively it asks; non-interactively it uses the default and auto-skips.
+defaults:
+  version: "1.4.0"
+
+tasks:
+  # `orchstep run publish`
+  publish:
+    steps:
+      - name: build
+        func: shell
+        do: echo "packaging release {{ vars.version }}"
+
+      - name: approve
+        func: prompt
+        args:
+          message: "Publish {{ vars.version }} to production?"
+          type: confirm
+          default: false
+
+      - name: gate
+        if: '{{ eq steps.approve.value "true" }}'
+        then:
+          - name: ship
+            func: shell
+            do: echo "publishing {{ vars.version }} to production"
+        else:
+          - name: hold
+            func: shell
+            do: echo "approval not granted; publish skipped"

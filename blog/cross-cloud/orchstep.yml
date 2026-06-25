@@ -1,0 +1,32 @@
+name: multicloud
+# One workflow, two clouds. Provision AWS and GCP in parallel, then run a
+# single verification across both — no two-runbook handoff.
+defaults:
+  stage: staging
+
+tasks:
+  # `orchstep run provision --var stage=production`
+  provision:
+    steps:
+      - name: clouds
+        parallel:
+          - name: aws
+            func: shell
+            do: echo "applying the AWS stack in {{ vars.stage }}"
+            outputs:
+              endpoint: "api.aws.internal"
+          - name: gcp
+            func: shell
+            do: echo "applying the GCP stack in {{ vars.stage }}"
+            outputs:
+              endpoint: "api.gcp.internal"
+
+      - name: verify
+        func: shell
+        do: echo "health-checking {{ steps.aws.endpoint }} and {{ steps.gcp.endpoint }} in {{ vars.stage }}"
+
+      - name: gate
+        func: assert
+        args:
+          condition: '{{ and (ne steps.aws.endpoint "") (ne steps.gcp.endpoint "") }}'
+          message: "both clouds must report an endpoint before {{ vars.stage }} is live"

@@ -1,0 +1,26 @@
+name: tenants
+# One workflow, many tenants. The tenant roster is data, so adding a customer is a
+# one-line edit — not a new task. Each iteration carries its own per-tenant config.
+defaults:
+  tenants:
+    - { id: acme,    region: us-east-1, tier: enterprise }
+    - { id: globex,  region: eu-west-1, tier: standard }
+    - { id: initech, region: us-west-2, tier: standard }
+
+tasks:
+  provision:
+    steps:
+      - name: each
+        func: shell
+        loop:
+          items: '{{ vars.tenants }}'
+        env:
+          TENANT_REGION: "{{ loop.item.region }}"   # per-tenant OS env for the tool
+        do: 'echo "provisioning {{ loop.item.id }} in $TENANT_REGION (tier={{ loop.item.tier }})"'
+
+  # Provision a single tenant on demand: orchstep run one --var id=acme
+  one:
+    steps:
+      - name: provision
+        func: shell
+        do: 'echo "provisioning tenant {{ vars.id }}"'

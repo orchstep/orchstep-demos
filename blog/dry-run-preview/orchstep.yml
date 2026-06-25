@@ -1,0 +1,47 @@
+name: dryrun-demo
+# Every step is a harmless echo, so you can dry-run it, then run it for real
+# and compare the plan against what happened.
+defaults:
+  app: checkout
+  version: "2.4.0"
+  target: staging
+  notify: ["alice", "bob"]
+
+tasks:
+  # `orchstep run ship --dry-run`
+  ship:
+    steps:
+      - name: build
+        func: shell
+        do: echo "built {{ vars.app }}:{{ vars.version }}"
+        outputs:
+          image: '{{ result.output | regexFind "[a-z]+:[0-9.]+" }}'
+
+      - name: push
+        func: shell
+        do: echo "pushing {{ steps.build.image }}"
+        retry:
+          max_attempts: 3
+          interval: "1s"
+
+      # variable-decided gate: dry-run gives this a real verdict
+      - name: gate
+        if: '{{ eq vars.target "production" }}'
+        then:
+          - name: canary
+            func: shell
+            do: echo "canary verify in {{ vars.target }}"
+        else:
+          - name: full
+            func: shell
+            do: echo "full rollout to {{ vars.target }}"
+
+      - name: notify_each
+        func: shell
+        loop:
+          items: "{{ vars.notify }}"
+        do: 'echo "notify {{ loop.item }}: {{ vars.app }} {{ vars.version }} live"'
+    finally:
+      - name: cleanup
+        func: shell
+        do: echo "cleanup"

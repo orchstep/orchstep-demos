@@ -1,0 +1,23 @@
+name: hooks
+# The checks your git hooks should run — defined once, callable everywhere.
+tasks:
+  # Fast gate for `pre-commit`: format + lint.
+  precommit:
+    desc: "Format and lint (fast — for pre-commit)"
+    steps:
+      - name: fmt
+        func: shell
+        do: echo "gofmt -l ."
+      - name: lint
+        func: shell
+        do: echo "golangci-lint run"
+
+  # Heavier gate for `pre-push`: everything in precommit, plus tests.
+  prepush:
+    desc: "Format, lint, and test (for pre-push)"
+    steps:
+      - name: checks
+        task: precommit
+      - name: test
+        func: shell
+        do: echo "go test ./..."

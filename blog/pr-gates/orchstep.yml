@@ -1,0 +1,34 @@
+name: app
+# The PR gate: lint, then validate every var resolves under --strict,
+# then test. A missing var fails `validate`, so the build fails before
+# a single test runs — not three steps too late.
+defaults:
+  coverage_floor: "80"
+  changed_coverage: "92"
+
+tasks:
+  # `orchstep run gate`
+  gate:
+    steps:
+      - name: lint
+        func: shell
+        do: echo "linting"
+      - name: test
+        task: test
+      - name: coverage
+        func: assert
+        args:
+          condition: '{{ ge (atoi vars.changed_coverage) (atoi vars.coverage_floor) }}'
+          message: "coverage {{ vars.changed_coverage }}% is below the {{ vars.coverage_floor }}% floor"
+      - name: pass
+        func: shell
+        do: echo "gate passed — coverage {{ vars.changed_coverage }}% >= {{ vars.coverage_floor }}%"
+
+  test:
+    steps:
+      - name: unit
+        func: shell
+        do: echo "running unit tests"
+      - name: integration
+        func: shell
+        do: echo "running integration tests"

@@ -1,0 +1,4 @@
+# env: staging
+target: staging-cluster
+version: "2.4.0-rc1"
+replicas: 4

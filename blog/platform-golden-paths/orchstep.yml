@@ -1,0 +1,32 @@
+name: paved-road
+defaults:
+  service_name: "new-svc"
+  team: payments
+tasks:
+  new-service:
+    steps:
+      - name: scaffold
+        func: shell
+        do: echo "scaffolding {{ vars.service_name }} for team {{ vars.team }}"
+      - name: config
+        func: render
+        args:
+          template: "service {{ vars.service_name }} owned by {{ vars.team }}"
+        outputs:
+          manifest: "{{ result.output }}"
+      - name: register
+        func: shell
+        do: echo "registering {{ steps.config.manifest }} in catalog"
+
+  onboard:
+    steps:
+      - name: tools
+        func: shell
+        do: echo "installing toolchain for {{ vars.team }}"
+      - name: checks
+        func: shell
+        do: echo "verifying environment for {{ vars.team }}"
+        retry:
+          max_attempts: 3
+          interval: "1s"
+          backoff_rate: 2.0

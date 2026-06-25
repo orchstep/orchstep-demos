@@ -1,0 +1,37 @@
+name: canary
+# Override any of these at the CLI with --var, e.g. --var version=2.5.0
+defaults:
+  version: "2.4.0"
+  target: production
+  canary_weight: "10"
+
+tasks:
+  # orchstep run release --var version=2.5.0
+  release:
+    steps:
+      - name: deploy_canary
+        func: shell
+        do: echo "deploying canary {{ vars.version }} to {{ vars.canary_weight }}% of {{ vars.target }}"
+
+      # Watch the canary. In a real run this would query your metrics backend;
+      # here it just emits a status string we branch on below.
+      - name: watch
+        func: shell
+        do: echo "healthy"
+        outputs:
+          status: '{{ result.output | trim }}'
+
+      - name: decide
+        if: '{{ eq steps.watch.status "healthy" }}'
+        then:
+          - name: promote
+            func: shell
+            do: echo "canary healthy — promoting {{ vars.version }} to 100% of {{ vars.target }}"
+        else:
+          - name: abort
+            func: shell
+            do: echo "canary unhealthy — aborting and rolling {{ vars.target }} back"
+        finally:
+          - name: record
+            func: shell
+            do: echo "canary decision recorded for {{ vars.version }}"

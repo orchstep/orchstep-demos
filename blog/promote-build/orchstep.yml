@@ -1,0 +1,47 @@
+name: promote
+# One artifact, three environments. Select with --env dev|staging|production.
+defaults:
+  version: "1.8.0"
+  artifact: ghcr.io/acme/api
+
+# Shared values for a family of environments.
+env_groups:
+  nonprod:
+    vars: { monitoring: basic, approval: auto }
+  prod:
+    vars: { monitoring: full, approval: manual }
+
+# Per-target bundles. Each selects a group and overrides a few vars.
+environments:
+  dev:
+    group: nonprod
+    vars: { target: dev-cluster }
+  staging:
+    group: nonprod
+    vars: { target: staging-cluster }
+  production:
+    group: prod
+    vars: { target: prod-cluster }
+
+tasks:
+  # orchstep run deploy --env staging
+  deploy:
+    steps:
+      - name: resolve
+        func: shell
+        do: echo "promoting {{ vars.artifact }}:{{ vars.version }} to {{ vars.target }}"
+
+      - name: deploy
+        func: shell
+        do: echo "deploying the same artifact {{ vars.artifact }}:{{ vars.version }} ({{ vars.monitoring }} monitoring)"
+
+      - name: gate
+        if: '{{ eq vars.approval "manual" }}'
+        then:
+          - name: hold
+            func: shell
+            do: echo "{{ vars.target }} requires manual approval before promotion"
+        else:
+          - name: auto
+            func: shell
+            do: echo "auto-promoted to {{ vars.target }}"

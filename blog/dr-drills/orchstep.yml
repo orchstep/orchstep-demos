@@ -1,0 +1,38 @@
+name: dr-drills
+desc: "Rehearse disaster recovery: back up, restore to a scratch target, verify, report."
+defaults:
+  store: dr/snapshots
+
+tasks:
+  # `orchstep run drill`
+  drill:
+    desc: "Run a disaster-recovery rehearsal end to end"
+    steps:
+      - name: backup
+        func: shell
+        do: echo "snapshot taken and shipped to {{ vars.store }}"
+        retry:
+          max_attempts: 3
+          interval: "2s"
+          backoff_rate: 2.0
+        outputs:
+          rows: "48211"
+
+      - name: restore
+        func: shell
+        do: echo "restoring newest snapshot into a scratch environment"
+        catch:
+          - name: alert
+            func: shell
+            do: echo "ALERT — restore failed; the recovery plan is not trustworthy"
+
+      - name: verify
+        func: assert
+        args:
+          condition: '{{ gt (atoi steps.backup.rows) 0 }}'
+          message: "restored target must contain rows"
+
+      - name: report
+        func: shell
+        do: |
+          echo "DR drill report: restored {{ steps.backup.rows }} rows, RTO 7m, RPO 1h"

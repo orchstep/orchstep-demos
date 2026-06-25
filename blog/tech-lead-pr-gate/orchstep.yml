@@ -1,0 +1,39 @@
+name: pr-gate
+# The merge gate a tech lead would otherwise enforce by memory in review.
+defaults:
+  branch: feature
+
+tasks:
+  # Shared, reusable checks - called by `gate`.
+  lint:
+    steps:
+      - name: format
+        func: shell
+        do: echo "format check clean"
+      - name: vet
+        func: shell
+        do: echo "static analysis clean"
+
+  unit:
+    steps:
+      - name: run
+        func: shell
+        do: echo "unit tests passed"
+
+  # `orchstep run gate --var branch=feature/new-api`
+  gate:
+    steps:
+      - name: lint
+        task: lint
+      - name: unit
+        task: unit
+      - name: coverage
+        func: shell
+        do: echo "coverage 87% (>= 80% threshold)"
+        retry:
+          max_attempts: 2
+          interval: "1s"
+          backoff_rate: 2.0
+      - name: verdict
+        func: shell
+        do: echo "{{ vars.branch }} is mergeable"

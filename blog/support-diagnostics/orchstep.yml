@@ -1,0 +1,40 @@
+name: support-runbook
+# Turn "can you send me your logs?" into one repeatable command.
+defaults:
+  account: acme
+
+tasks:
+  # `orchstep run diagnose --var account=acme`
+  diagnose:
+    steps:
+      - name: identity
+        func: shell
+        do: echo "resolving account {{ vars.account }}"
+      - name: version
+        func: shell
+        do: echo "app version 4.2.1 / api 4.2.0"
+      - name: connectivity
+        func: shell
+        do: echo "ping api -> 200 in 84ms"
+        retry:
+          max_attempts: 3
+          interval: "1s"
+          backoff_rate: 2.0
+      - name: logs
+        func: shell
+        do: echo "collected last 200 log lines"
+      - name: bundle
+        func: shell
+        do: echo "wrote diagnostics bundle for {{ vars.account }}"
+
+  # `orchstep run escalate --var account=acme`
+  escalate:
+    steps:
+      - name: gather
+        task: diagnose
+      - name: severity
+        func: shell
+        do: echo "severity S2 (degraded)"
+      - name: handoff
+        func: shell
+        do: echo "opened engineering ticket with the bundle attached"

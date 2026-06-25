@@ -1,0 +1,39 @@
+name: monorepo
+# One entry point. Per-package tasks. Composed with task calls.
+defaults:
+  mode: dev
+
+tasks:
+  # `orchstep run ui`
+  ui:
+    steps:
+      - name: build-ui
+        func: shell
+        do: echo "pnpm --filter ui build"
+
+  # `orchstep run web`
+  web:
+    steps:
+      - name: build-web
+        func: shell
+        do: echo "pnpm --filter web build"
+
+  # `orchstep run api`
+  api:
+    steps:
+      - name: build-api
+        func: shell
+        do: echo "pnpm --filter api build"
+
+  # `orchstep run build` — the single entry point newcomers learn.
+  build:
+    steps:
+      - name: shared-ui
+        task: ui
+      - name: frontend
+        task: web
+      - name: backend
+        task: api
+      - name: done
+        func: shell
+        do: echo "all packages built ({{ vars.mode }})"

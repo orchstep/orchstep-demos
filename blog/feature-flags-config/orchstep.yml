@@ -1,0 +1,48 @@
+name: feature-flags
+# Feature flags live in config, not in code. Flip them per run,
+# gate steps on them, and render a flags file the app reads at boot.
+defaults:
+  new_checkout: "false"
+  dark_mode: "true"
+  beta_search: "false"
+  stage: staging
+
+tasks:
+  # orchstep run flags --var new_checkout=true
+  flags:
+    desc: "Render the flag set and gate work on it"
+    steps:
+      # render produces text from a template. The output is the JSON the app loads.
+      - name: render_flags
+        func: render
+        args:
+          template: |
+            {
+              "new_checkout": {{ vars.new_checkout }},
+              "dark_mode": {{ vars.dark_mode }},
+              "beta_search": {{ vars.beta_search }}
+            }
+        outputs:
+          json: "{{ result.output }}"
+
+      - name: checkout_gate
+        if: '{{ eq vars.new_checkout "true" }}'
+        then:
+          - name: on
+            func: shell
+            do: echo "new checkout flow ENABLED for {{ vars.stage }}"
+        else:
+          - name: off
+            func: shell
+            do: echo "new checkout flow disabled for {{ vars.stage }}"
+
+      - name: search_gate
+        if: '{{ eq vars.beta_search "true" }}'
+        then:
+          - name: index
+            func: shell
+            do: echo "warming the beta search index for {{ vars.stage }}"
+
+      - name: write
+        func: shell
+        do: echo "wrote flags.json for {{ vars.stage }}"

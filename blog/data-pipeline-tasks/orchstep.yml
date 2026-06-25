@@ -1,0 +1,39 @@
+name: events-pipeline
+defaults:
+  source: "s3://acme-raw/events"
+  warehouse: "analytics.events"
+tasks:
+  etl:
+    steps:
+      - name: extract
+        func: shell
+        do: echo "extracting from {{ vars.source }}"
+        retry:
+          max_attempts: 3
+          interval: "5s"
+          backoff_rate: 2.0
+        outputs:
+          rows: "{{ result.output }}"
+      - name: transform
+        func: shell
+        do: echo "transforming batch from {{ vars.source }}"
+      - name: quality
+        func: assert
+        args:
+          condition: '{{ gt 1 0 }}'
+          message: "batch is non-empty"
+      - name: load
+        func: shell
+        do: echo "loading into {{ vars.warehouse }}"
+        catch:
+          - name: quarantine
+            func: shell
+            do: echo "moving bad batch to quarantine"
+
+  backfill:
+    steps:
+      - name: partition
+        func: shell
+        loop:
+          items: '{{ list "2026-01-01" "2026-01-02" "2026-01-03" }}'
+        do: echo "reprocessing partition {{ loop.item }}"

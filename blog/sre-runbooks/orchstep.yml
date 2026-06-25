@@ -1,0 +1,51 @@
+name: payments-sre
+defaults:
+  service: payments
+  health_url: "https://payments.example.test/healthz"
+tasks:
+  triage:
+    steps:
+      - name: health
+        func: http
+        args:
+          url: "{{ vars.health_url }}"
+          method: GET
+      - name: responding
+        func: assert
+        args:
+          condition: '{{ eq 1 1 }}'
+          message: "{{ vars.service }} is responding"
+      - name: deps
+        func: shell
+        do: echo "checking upstream deps for {{ vars.service }}"
+
+  restart:
+    steps:
+      - name: drain
+        func: shell
+        do: echo "draining traffic from {{ vars.service }}"
+      - name: cycle
+        func: shell
+        do: echo "rolling restart of {{ vars.service }}"
+      - name: settle
+        func: wait
+        args:
+          duration: "3s"
+          message: "letting pods settle"
+      - name: verify
+        func: shell
+        do: echo "verifying {{ vars.service }} is healthy"
+        retry:
+          max_attempts: 5
+          interval: "2s"
+          backoff_rate: 2.0
+
+  error-budget:
+    steps:
+      - name: pull
+        func: shell
+        do: echo "querying SLO burn for {{ vars.service }}"
+      - name: report
+        func: render
+        args:
+          template: "service {{ vars.service }} error-budget report"

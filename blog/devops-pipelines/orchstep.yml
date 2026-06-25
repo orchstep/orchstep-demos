@@ -1,0 +1,36 @@
+name: service-ci
+defaults:
+  image: "ghcr.io/acme/api"
+  tag: "dev"
+tasks:
+  ci:
+    steps:
+      - name: lint
+        func: shell
+        do: echo "linting service-ci"
+      - name: test
+        func: shell
+        do: echo "running tests"
+        retry:
+          max_attempts: 2
+          interval: "1s"
+          backoff_rate: 2.0
+      - name: build
+        func: shell
+        do: echo "building {{ vars.image }}:{{ vars.tag }}"
+      - name: package
+        func: shell
+        do: echo "pushing {{ vars.image }}:{{ vars.tag }}"
+
+  promote:
+    steps:
+      - name: gate
+        if: '{{ eq vars.tag "release" }}'
+        then:
+          - name: prod
+            func: shell
+            do: echo "promoting {{ vars.image }} to production"
+        else:
+          - name: stg
+            func: shell
+            do: echo "promoting {{ vars.image }} to staging"

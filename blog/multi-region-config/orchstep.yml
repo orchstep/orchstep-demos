@@ -1,0 +1,52 @@
+name: multi-region
+# One config, many regions. Deploy to a single region with --env,
+# or fan out across every region with the rollout task.
+defaults:
+  app: api
+  version: "2.1.0"
+  regions:
+    - us-east-1
+    - eu-west-1
+    - ap-southeast-1
+
+# Shared policy for a family of regions.
+env_groups:
+  standard:
+    vars: { replicas: "3", tier: standard }
+  primary:
+    vars: { replicas: "6", tier: primary }
+
+# Per-region overrides. Each selects a group and sets its own endpoint.
+environments:
+  us-east-1:
+    group: primary
+    vars: { region: us-east-1, endpoint: api.us.example.com }
+  eu-west-1:
+    group: standard
+    vars: { region: eu-west-1, endpoint: api.eu.example.com }
+  ap-southeast-1:
+    group: standard
+    vars: { region: ap-southeast-1, endpoint: api.ap.example.com }
+
+tasks:
+  # orchstep run deploy --env eu-west-1
+  deploy:
+    steps:
+      - name: plan
+        func: shell
+        do: echo "deploying {{ vars.app }}:{{ vars.version }} to {{ vars.region }} ({{ vars.replicas }} replicas, {{ vars.tier }} tier)"
+      - name: dns
+        func: shell
+        do: echo "pointing {{ vars.endpoint }} at {{ vars.region }}"
+
+  # orchstep run rollout   (one pass over every region in vars.regions)
+  rollout:
+    steps:
+      - name: each
+        loop:
+          items: '{{ vars.regions }}'
+        func: shell
+        do: echo "rolling out {{ vars.app }}:{{ vars.version }} to {{ loop.item }}"
+      - name: done
+        func: shell
+        do: echo "all {{ len vars.regions }} regions updated to {{ vars.version }}"

@@ -1,0 +1,28 @@
+name: ci
+# Split the suite into N shards, run each, then gate on a full set of results.
+defaults:
+  shards: [1, 2, 3, 4]
+  total: 4
+
+tasks:
+  # `orchstep run test`
+  test:
+    steps:
+      - name: shard
+        loop:
+          items: "{{ vars.shards }}"
+          as: n
+        func: shell
+        do: echo "running shard {{ loop.n }}/{{ vars.total }}"
+        outputs:
+          result: "shard {{ loop.n }} ok"
+
+      - name: aggregate
+        func: shell
+        do: echo "collected {{ len steps.shard.outputs }} shard results"
+
+      - name: gate
+        func: assert
+        args:
+          condition: '{{ eq (len steps.shard.outputs) 4 }}'
+          message: "every shard must report before the suite passes"

@@ -1,0 +1,23 @@
+name: dev
+# Run `orchstep menu` for a fuzzy task picker with single-key hotkeys.
+# Every task's `desc:` is what shows up in the menu — so write good ones.
+tasks:
+  test:
+    desc: "Run the test suite"
+    steps:
+      - { name: run, func: shell, do: echo "go test ./..." }
+
+  lint:
+    desc: "Lint and vet the codebase"
+    steps:
+      - { name: run, func: shell, do: echo "golangci-lint run" }
+
+  build:
+    desc: "Compile the binary"
+    steps:
+      - { name: run, func: shell, do: echo "go build ./..." }
+
+  serve:
+    desc: "Start the dev server on :8080"
+    steps:
+      - { name: run, func: shell, do: echo "starting dev server on :8080" }

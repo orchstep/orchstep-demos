@@ -1,0 +1,36 @@
+name: classifier
+defaults:
+  dataset: "imagenet-mini"
+  min_accuracy: "0.90"
+tasks:
+  train:
+    steps:
+      - name: prep
+        func: shell
+        do: echo "preparing {{ vars.dataset }}"
+      - name: fit
+        func: shell
+        do: echo "training on {{ vars.dataset }}"
+        timeout: "30s"
+        retry:
+          max_attempts: 2
+          interval: "5s"
+          backoff_rate: 2.0
+        outputs:
+          accuracy: "{{ result.output }}"
+      - name: gate
+        func: assert
+        args:
+          condition: '{{ ge 0.93 0.90 }}'
+          message: "accuracy meets {{ vars.min_accuracy }}"
+      - name: register
+        func: shell
+        do: echo "registering model trained on {{ vars.dataset }}"
+
+  sweep:
+    steps:
+      - name: run
+        func: shell
+        loop:
+          items: '{{ list "0.001" "0.01" "0.1" }}'
+        do: echo "training with lr={{ loop.item }}"

@@ -1,0 +1,27 @@
+name: nightly
+# A task you trigger from cron or a systemd timer.
+# Run with: orchstep run nightly --output json
+# Exit code is non-zero if any step fails, so the timer records a failure.
+defaults:
+  retention: "30"
+
+tasks:
+  # `orchstep run nightly --output json`
+  nightly:
+    steps:
+      - name: rotate
+        func: shell
+        do: echo "rotating logs older than {{ vars.retention }} days"
+      - name: refresh
+        func: shell
+        do: echo "refreshing materialized views"
+        retry:
+          max_attempts: 2
+          interval: "5s"
+          backoff_rate: 2.0
+      - name: prune
+        func: shell
+        do: echo "pruning artifacts, keeping {{ vars.retention }} days"
+      - name: done
+        func: shell
+        do: echo "nightly maintenance complete"

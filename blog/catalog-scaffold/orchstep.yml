@@ -1,0 +1,38 @@
+name: catalog-scaffold
+desc: "Scaffold a new service, register it in the catalog, smoke test it."
+defaults:
+  service: "widget"
+  tier: backend
+
+tasks:
+  # `orchstep run new --var service=billing`
+  new:
+    desc: "Stand up a new service the paved way"
+    steps:
+      - name: scaffold
+        func: render
+        args:
+          template: |
+            name: {{ vars.service }}
+            owner: platform
+            tier: {{ vars.tier }}
+        outputs:
+          manifest: "{{ result.output }}"
+
+      - name: register
+        func: shell
+        do: echo "registering {{ vars.service }} in the service catalog (tier {{ vars.tier }})"
+        outputs:
+          id: "svc-{{ vars.service }}"
+
+      - name: smoke
+        func: shell
+        do: echo "GET /healthz on {{ steps.register.id }} -> 200"
+        retry:
+          max_attempts: 3
+          interval: "1s"
+          backoff_rate: 2.0
+
+      - name: done
+        func: shell
+        do: echo "{{ vars.service }} scaffolded, registered as {{ steps.register.id }}, smoke test passed"

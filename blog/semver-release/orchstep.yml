@@ -1,0 +1,53 @@
+name: release
+# orchstep run publish --var channel=stable
+defaults:
+  bump: patch
+  channel: stable
+  version: "1.4.2"
+
+tasks:
+  # Fail fast before we touch anything.
+  preflight:
+    steps:
+      - { name: clean_tree, func: shell, do: 'echo "working tree clean"' }
+      - { name: tests,      func: shell, do: 'echo "test suite green"' }
+      - { name: lint,       func: shell, do: 'echo "lint clean"' }
+
+  # orchstep run publish --var bump=minor --var channel=stable
+  publish:
+    steps:
+      - name: preflight
+        task: preflight
+
+      - name: bump
+        func: shell
+        do: echo "1.4.3"
+        outputs:
+          next: '{{ result.output | trim }}'
+
+      - name: changelog
+        func: shell
+        do: echo "writing CHANGELOG entry for v{{ steps.bump.next }}"
+
+      - name: tag
+        func: shell
+        do: echo "tagging v{{ steps.bump.next }}"
+
+      - name: build
+        func: shell
+        do: echo "building release artifacts for v{{ steps.bump.next }}"
+
+      - name: gate
+        if: '{{ eq vars.channel "stable" }}'
+        then:
+          - name: publish_stable
+            func: shell
+            do: echo "publishing v{{ steps.bump.next }} to the stable channel"
+        else:
+          - name: publish_pre
+            func: shell
+            do: echo "publishing v{{ steps.bump.next }} to the {{ vars.channel }} channel"
+        finally:
+          - name: announce
+            func: shell
+            do: echo "release v{{ steps.bump.next }} done"

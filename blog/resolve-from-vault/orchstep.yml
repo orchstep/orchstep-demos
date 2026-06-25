@@ -1,0 +1,22 @@
+name: resolver
+# Fetch once, pull each field. In production the cmd is
+#   vault kv get -format=json secret/app   (or `op item get ... --output json`).
+# Here a printf stand-in returns the same JSON shape so the demo runs offline.
+# Identical cmds run only once per run — the result is cached.
+secrets:
+  DB_USER:
+    cmd: "printf '{\"data\":{\"user\":\"app\",\"pass\":\"s3cr3t\"}}'"
+    field: '{{ result.data.user }}'
+  DB_PASS:
+    cmd: "printf '{\"data\":{\"user\":\"app\",\"pass\":\"s3cr3t\"}}'"
+    field: '{{ result.data.pass }}'
+tasks:
+  migrate:
+    # The real values reach psql via the OS env; the run history stays masked.
+    env:
+      PGUSER: "{{ secrets.DB_USER }}"
+      PGPASSWORD: "{{ secrets.DB_PASS }}"
+    steps:
+      - name: run
+        func: shell
+        do: 'echo "migrating as user={{ secrets.DB_USER }} pass={{ secrets.DB_PASS }}"'

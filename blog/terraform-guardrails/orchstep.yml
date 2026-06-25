@@ -1,0 +1,58 @@
+name: terraform
+# Wrap terraform with the guardrails you keep forgetting:
+# fmt -> validate -> plan -> human approval -> apply.
+defaults:
+  stage: staging
+  workdir: infra
+
+tasks:
+  # orchstep run fmt
+  fmt:
+    steps:
+      - name: fmt
+        func: shell
+        do: echo "terraform -chdir={{ vars.workdir }} fmt -check -recursive"
+
+  # orchstep run validate
+  validate:
+    steps:
+      - name: init
+        func: shell
+        do: echo "terraform -chdir={{ vars.workdir }} init -backend=false"
+      - name: validate
+        func: shell
+        do: echo "terraform -chdir={{ vars.workdir }} validate"
+
+  # orchstep run plan --var stage=production
+  plan:
+    steps:
+      - name: fmt
+        task: fmt
+      - name: validate
+        task: validate
+      - name: plan
+        func: shell
+        do: echo "terraform -chdir={{ vars.workdir }} plan -out=tfplan ({{ vars.stage }})"
+
+  # orchstep run apply --var stage=production --dry-run   (preview, run nothing)
+  apply:
+    desc: "Plan, ask for approval, then apply"
+    steps:
+      - name: plan
+        task: plan
+      - name: approve
+        func: prompt
+        args:
+          message: "Apply this plan to {{ vars.stage }}?"
+          type: confirm
+          default: false
+      - name: gate
+        if: '{{ eq steps.approve.value "true" }}'
+        then:
+          - name: apply
+            func: shell
+            do: echo "terraform -chdir={{ vars.workdir }} apply tfplan"
+        else:
+          - name: hold
+            func: shell
+            do: echo "apply to {{ vars.stage }} not approved; nothing changed"

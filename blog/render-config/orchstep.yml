@@ -1,0 +1,34 @@
+name: render-demo
+# One template, rendered once per target - func: render with vars.
+defaults:
+  app: checkout
+  version: "2.4.0"
+  port: "8080"
+  targets:
+    - { tier: staging, replicas: "1", host: stage.internal }
+    - { tier: production, replicas: "6", host: api.internal }
+
+tasks:
+  # `orchstep run config`
+  config:
+    steps:
+      - name: render_per_target
+        loop:
+          items: "{{ vars.targets }}"
+          as: t
+        func: render
+        do: |
+          # generated for {{ loop.t.tier }} - do not edit by hand
+          [service]
+          app      = {{ vars.app }}
+          version  = {{ vars.version }}
+          tier     = {{ loop.t.tier }}
+          replicas = {{ loop.t.replicas }}
+          listen   = {{ loop.t.host }}:{{ vars.port }}
+
+  # `orchstep run banner` - the render shorthand (do: is the template)
+  banner:
+    steps:
+      - name: line
+        func: render
+        do: "deploying {{ vars.app }} v{{ vars.version }} on :{{ vars.port }}"

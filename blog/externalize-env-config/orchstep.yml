@@ -1,0 +1,11 @@
+name: externalized
+# Style 2: env config lives in files under environments/. The filename IS the
+# hierarchy — --env prod-production loads defaults.yml, prod.yml, prod-production.yml.
+env_config:
+  env_dir: environments
+tasks:
+  deploy:
+    steps:
+      - name: ship
+        func: shell
+        do: 'echo "deploy {{ vars.version }} to {{ vars.target }} (mon={{ vars.monitoring }} replicas={{ vars.replicas }})"'

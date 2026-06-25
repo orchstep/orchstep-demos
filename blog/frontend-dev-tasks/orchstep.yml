@@ -1,0 +1,39 @@
+name: web-app
+defaults:
+  api_base: "https://api.staging.example.test"
+  build_dir: dist
+tasks:
+  check:
+    steps:
+      - name: install
+        func: shell
+        do: echo "installing deps for web-app"
+      - name: lint
+        func: shell
+        do: echo "running eslint + prettier"
+      - name: types
+        func: shell
+        do: echo "running tsc --noEmit"
+      - name: test
+        func: shell
+        do: echo "running vitest"
+        retry:
+          max_attempts: 2
+          interval: "1s"
+          backoff_rate: 2.0
+      - name: build
+        func: shell
+        do: echo "building against {{ vars.api_base }} into {{ vars.build_dir }}"
+
+  preview:
+    steps:
+      - name: build
+        task: check
+      - name: deploy
+        func: shell
+        do: echo "uploading {{ vars.build_dir }} to preview host"
+        outputs:
+          url: "https://pr-42.preview.example.test"
+      - name: report
+        func: shell
+        do: echo "preview ready at {{ steps.deploy.url }}"

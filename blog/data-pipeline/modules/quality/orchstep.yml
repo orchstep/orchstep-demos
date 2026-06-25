@@ -1,0 +1,23 @@
+name: quality
+desc: "Reusable data-quality gate: row-count and freshness checks."
+
+defaults:
+  dataset: "unnamed"
+  min_rows: "1"
+
+tasks:
+  # Asserts the dataset cleared the row-count floor for this run.
+  check:
+    desc: "Gate a dataset on a minimum row count"
+    steps:
+      - name: rows
+        func: shell
+        do: echo "counting rows in {{ vars.dataset }}"
+        outputs:
+          count: "1000"
+
+      - name: gate
+        func: assert
+        args:
+          condition: '{{ ge (atoi steps.rows.count) (atoi vars.min_rows) }}'
+          message: "{{ vars.dataset }} fell below the {{ vars.min_rows }}-row floor"

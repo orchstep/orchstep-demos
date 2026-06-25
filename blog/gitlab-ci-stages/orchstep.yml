@@ -1,0 +1,38 @@
+name: service
+# Each GitLab stage is one `orchstep run <task>`. The .gitlab-ci.yml reads
+# like a table of contents; the actual work is named and ordered here.
+defaults:
+  target: staging
+
+tasks:
+  # stage: build  -> `orchstep run build`
+  build:
+    steps:
+      - name: compile
+        func: shell
+        do: echo "compiling service"
+        outputs:
+          artifact: "dist/service.tar.gz"
+      - name: report
+        func: shell
+        do: echo "built {{ steps.compile.artifact }}"
+
+  # stage: test  -> `orchstep run test`
+  test:
+    steps:
+      - name: unit
+        func: shell
+        do: echo "running unit tests"
+      - name: integration
+        func: shell
+        do: echo "running integration tests"
+
+  # stage: deploy  -> `orchstep run deploy --var target=production`
+  deploy:
+    steps:
+      - name: ship
+        func: shell
+        do: echo "deploying service to {{ vars.target }}"
+      - name: verify
+        func: shell
+        do: echo "verifying {{ vars.target }} is healthy"

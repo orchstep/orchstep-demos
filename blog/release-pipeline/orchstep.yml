@@ -1,0 +1,45 @@
+name: release-train
+# The release manager's checklist as code: cut -> ship -> verify -> rollback.
+defaults:
+  version: "1.4.0"
+  tier: staging
+
+tasks:
+  # `orchstep run cut --var version=1.5.0`
+  cut:
+    steps:
+      - name: changelog
+        func: shell
+        do: echo "generating CHANGELOG for {{ vars.version }}"
+      - name: tag
+        func: shell
+        do: echo "tagging v{{ vars.version }}"
+        outputs:
+          ref: "v{{ vars.version }}"
+      - name: announce
+        func: shell
+        do: echo "cut {{ steps.tag.ref }}"
+
+  # `orchstep run ship --var version=1.5.0 --var tier=production`
+  ship:
+    steps:
+      - name: cut
+        task: cut
+      - name: publish
+        func: shell
+        do: echo "publishing {{ vars.version }} to {{ vars.tier }}"
+        retry:
+          max_attempts: 3
+          interval: "1s"
+          backoff_rate: 2.0
+      - name: verify
+        func: shell
+        do: echo "post-deploy smoke on {{ vars.tier }}"
+        catch:
+          - name: rollback
+            func: shell
+            do: echo "rolling {{ vars.tier }} back to the previous release"
+        finally:
+          - name: notify
+            func: shell
+            do: echo "release {{ vars.version }} -> {{ vars.tier }} finished"

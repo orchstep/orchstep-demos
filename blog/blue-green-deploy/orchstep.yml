@@ -1,0 +1,33 @@
+name: app
+# Blue/green: deploy to the idle slot, verify it before any traffic moves,
+# then flip atomically. If the flip or verify fails, catch rolls back —
+# the live slot never saw a bad build.
+defaults:
+  version: "2.4.0"
+  active: blue
+  idle: green
+
+tasks:
+  # `orchstep run deploy --var version=2.5.0`
+  deploy:
+    steps:
+      - name: release_idle
+        func: shell
+        do: echo "deploying {{ vars.version }} to idle slot {{ vars.idle }}"
+      - name: verify_idle
+        func: shell
+        do: echo "verifying {{ vars.idle }} responds before any traffic"
+      - name: flip
+        func: shell
+        do: echo "flipping traffic {{ vars.active }} -> {{ vars.idle }}"
+        catch:
+          - name: rollback
+            func: shell
+            do: echo "flip failed — traffic stays on {{ vars.active }}, {{ vars.idle }} drained"
+        finally:
+          - name: record
+            func: shell
+            do: echo "deploy of {{ vars.version }} finished"
+      - name: confirm
+        func: shell
+        do: echo "{{ vars.idle }} is now live serving {{ vars.version }}"

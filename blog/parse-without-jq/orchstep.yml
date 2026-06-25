@@ -1,0 +1,44 @@
+name: parse-demo
+# Structured data in, fields out - no jq golf, no awk.
+defaults:
+  cpu_limit: "70"
+
+tasks:
+  # `orchstep run json_report`
+  # JSON: parse with func: transform (a real sandboxed JS VM, not a one-liner).
+  json_report:
+    steps:
+      - name: fetch
+        func: shell
+        do: |
+          echo '{"service":"checkout","instances":[{"name":"web1","cpu":42},{"name":"web2","cpu":91},{"name":"web3","cpu":12}]}'
+      - name: summarize
+        func: transform
+        do: |
+          const data = utils.parseJSON(steps.fetch.output);
+          const limit = parseInt(vars.cpu_limit, 10);
+          const hot = data.instances.filter(function (i) { return i.cpu > limit; });
+          return {
+            service: data.service,
+            total: data.instances.length,
+            hot_count: hot.length,
+            hot_names: hot.map(function (i) { return i.name; }).join(", ")
+          };
+      - name: report
+        func: shell
+        do: 'echo "{{ steps.summarize.service }}: {{ steps.summarize.hot_count }}/{{ steps.summarize.total }} over {{ vars.cpu_limit }}% -> {{ steps.summarize.hot_names }}"'
+
+  # `orchstep run yaml_report`
+  # YAML: any step whose stdout parses as YAML exposes result.data_object.
+  yaml_report:
+    steps:
+      - name: emit
+        func: shell
+        do: |
+          printf 'region: apac\norders: 124\ncurrency: USD\n'
+        outputs:
+          region: "{{ result.data_object.region }}"
+          orders: "{{ result.data_object.orders }}"
+      - name: report
+        func: shell
+        do: echo "{{ steps.emit.region }} had {{ steps.emit.orders }} orders"

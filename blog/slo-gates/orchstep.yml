@@ -1,0 +1,38 @@
+name: slo
+# Compute availability from request logs, compare against the SLO target,
+# and gate the release: promote only when the error budget can absorb it.
+defaults:
+  service: checkout
+  target_pct: "99"
+
+tasks:
+  # `orchstep run gate --var service=checkout`
+  gate:
+    steps:
+      - name: count
+        func: shell
+        do: echo "scanning {{ vars.service }} request logs for the trailing 30 days"
+        outputs:
+          total: "1000000"
+          errors: "4000"
+
+      - name: availability
+        func: shell
+        do: echo "{{ vars.service }} availability computed from logs"
+        outputs:
+          pct: "99"
+
+      - name: decide
+        if: '{{ ge (atoi steps.availability.pct) (atoi vars.target_pct) }}'
+        then:
+          - name: promote
+            func: shell
+            do: echo "{{ vars.service }} within SLO ({{ steps.availability.pct }}% >= {{ vars.target_pct }}%) — promoting release"
+        else:
+          - name: freeze
+            func: shell
+            do: echo "{{ vars.service }} error budget exhausted ({{ steps.availability.pct }}% < {{ vars.target_pct }}%) — freezing releases"
+        finally:
+          - name: record
+            func: shell
+            do: echo "SLO decision for {{ vars.service }} recorded in the error-budget ledger"

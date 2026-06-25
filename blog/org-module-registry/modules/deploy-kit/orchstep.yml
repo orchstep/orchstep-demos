@@ -1,0 +1,15 @@
+name: deploy-kit
+desc: "Org-standard deploy steps (v1.2.0)."
+defaults:
+  service: "service"
+  target: staging
+
+tasks:
+  rollout:
+    desc: "Roll out a service the org-approved way"
+    steps:
+      - name: ship
+        func: shell
+        do: echo "deploy-kit v1.2.0 — rolling out {{ vars.service }} to {{ vars.target }}"
+        outputs:
+          ref: "{{ vars.service }}@{{ vars.target }}"

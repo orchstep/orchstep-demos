@@ -1,0 +1,38 @@
+name: appsec
+defaults:
+  repo: "acme/api"
+  max_critical: "0"
+tasks:
+  scan:
+    steps:
+      - name: sast
+        func: shell
+        do: echo "static analysis on {{ vars.repo }}"
+      - name: deps
+        func: shell
+        do: echo "dependency audit for {{ vars.repo }}"
+        retry:
+          max_attempts: 2
+          interval: "1s"
+          backoff_rate: 2.0
+      - name: containers
+        func: shell
+        do: echo "image scan for {{ vars.repo }}"
+      - name: gate
+        func: assert
+        args:
+          condition: '{{ le 0 0 }}'
+          message: "no critical findings in {{ vars.repo }}"
+
+  certs:
+    steps:
+      - name: probe
+        func: http
+        args:
+          url: "https://api.example.test/health"
+          method: GET
+      - name: valid
+        func: assert
+        args:
+          condition: '{{ eq 1 1 }}'
+          message: "certificate for {{ vars.repo }} is valid"

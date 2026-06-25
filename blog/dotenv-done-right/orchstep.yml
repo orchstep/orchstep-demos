@@ -1,0 +1,21 @@
+name: dotenv-demo
+# dotenv files load top-to-bottom; later files override earlier keys.
+# Bare names load from environments/ when present.
+dotenv:
+  - common.env        # 1. shared baseline, always loaded
+  - app.env           # 2. app profile — overrides the baseline where they overlap
+  - "overrides.env?"  # 3. optional ad-hoc tweaks; trailing ? = skip if absent
+env:
+  DATABASE_URL: <required>                       # must arrive via dotenv (or CI); fail fast if missing
+  LOG_LEVEL: "{{ env.LOG_LEVEL | default \"info\" }}"
+tasks:
+  show:
+    steps:
+      - name: env
+        func: shell
+        do: 'echo "url=$DATABASE_URL region=$AWS_REGION log=$LOG_LEVEL"'
+      - name: scoped
+        func: shell
+        env:
+          LOG_LEVEL: trace                        # step env: wins over everything, for this step only
+        do: 'echo "this step runs at log=$LOG_LEVEL"'

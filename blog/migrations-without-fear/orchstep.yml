@@ -1,0 +1,37 @@
+name: db
+# A migrate task with a safety net: pre-check, backup, apply, verify,
+# rollback on failure (catch), and a notification that always runs (finally).
+defaults:
+  to: latest
+  target: staging
+
+tasks:
+  # `orchstep run migrate --var target=production --dry-run`  (preview first)
+  migrate:
+    desc: "Migrate the database with backup + rollback"
+    steps:
+      - name: precheck
+        func: shell
+        do: echo "checking connectivity to {{ vars.target }} database"
+
+      - name: backup
+        func: shell
+        do: echo "snapshotting {{ vars.target }} before migrating to {{ vars.to }}"
+        outputs:
+          snapshot: "backup-{{ vars.target }}.sql"
+
+      - name: apply
+        func: shell
+        do: echo "applying migrations up to {{ vars.to }}"
+        catch:
+          - name: rollback
+            func: shell
+            do: echo "migration failed — restoring {{ steps.backup.snapshot }}"
+        finally:
+          - name: notify
+            func: shell
+            do: echo "migration of {{ vars.target }} finished (notifying #ops)"
+
+      - name: verify
+        func: shell
+        do: echo "verifying schema version is {{ vars.to }} on {{ vars.target }}"

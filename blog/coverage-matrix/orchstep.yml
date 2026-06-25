@@ -1,0 +1,11 @@
+name: coverage
+# `orchstep validate deploy` scans every vars.X this task references and reports
+# which environments would leave one unresolved — as a coverage matrix.
+env_config:
+  env_dir: environments
+tasks:
+  deploy:
+    steps:
+      - name: ship
+        func: shell
+        do: 'echo "deploy {{ vars.version }} to {{ vars.target }} in {{ vars.region }}"'

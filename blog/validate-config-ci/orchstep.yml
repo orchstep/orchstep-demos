@@ -1,0 +1,41 @@
+name: config-check
+# A PR gate that proves the config is complete before it reaches prod.
+# In CI:  orchstep lint && orchstep validate deploy --strict && orchstep run check
+defaults:
+  stage: staging
+  image: ghcr.io/acme/api:1.6.0
+  replicas: "3"
+
+tasks:
+  # orchstep run check
+  check:
+    desc: "Assert required config is present and sane"
+    steps:
+      - name: image_set
+        func: assert
+        args:
+          condition: '{{ ne vars.image "" }}'
+          message: "image must be set"
+
+      - name: stage_known
+        func: assert
+        args:
+          condition: '{{ or (eq vars.stage "staging") (eq vars.stage "production") }}'
+          message: "stage must be staging or production"
+
+      - name: replicas_set
+        func: assert
+        args:
+          condition: '{{ ne vars.replicas "" }}'
+          message: "replicas must be set"
+
+      - name: ok
+        func: shell
+        do: echo "config valid for {{ vars.stage }} -> {{ vars.image }} x{{ vars.replicas }}"
+
+  # the task CI validates structurally with: orchstep validate deploy --strict
+  deploy:
+    steps:
+      - name: deploy
+        func: shell
+        do: echo "deploying {{ vars.image }} to {{ vars.stage }} ({{ vars.replicas }} replicas)"

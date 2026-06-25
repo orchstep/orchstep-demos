@@ -1,0 +1,19 @@
+name: api-smoke-tests
+# Hit a list of endpoints and assert each one is healthy.
+defaults:
+  base: https://api.example.com
+  endpoints:
+    - /healthz
+    - /version
+    - /users
+    - /orders
+
+tasks:
+  # `orchstep run smoke --var base=https://staging.api.example.com`
+  smoke:
+    steps:
+      - name: check
+        func: shell
+        do: echo "GET {{ vars.base }}{{ loop.item }} -> expect 200"
+        loop:
+          items: '{{ vars.endpoints }}'

@@ -1,0 +1,36 @@
+name: k8s-dev-loop
+# A tight build -> load -> apply -> rollout -> logs loop for cluster development.
+# Override any of these at the CLI with --var.
+defaults:
+  app: web
+  tag: dev
+  cluster: kind-dev
+
+tasks:
+  # `orchstep run loop --var tag=$(git rev-parse --short HEAD)`
+  loop:
+    steps:
+      - name: build
+        func: shell
+        do: echo "docker build -t {{ vars.app }}:{{ vars.tag }} ."
+      - name: load
+        func: shell
+        do: echo "kind load docker-image {{ vars.app }}:{{ vars.tag }} --name {{ vars.cluster }}"
+      - name: apply
+        func: shell
+        do: echo "kubectl apply -k deploy/"
+      # rollout status blocks until the new pods are Ready (or the timeout trips).
+      - name: rollout
+        func: shell
+        do: echo "kubectl rollout status deploy/{{ vars.app }} --timeout=90s"
+        retry:
+          max_attempts: 3
+          interval: "2s"
+          backoff_rate: 1.5
+        catch:
+          - name: undo
+            func: shell
+            do: echo "kubectl rollout undo deploy/{{ vars.app }}"
+      - name: logs
+        func: shell
+        do: echo "kubectl logs deploy/{{ vars.app }} --tail=20 --since=1m"

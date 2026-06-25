@@ -1,0 +1,39 @@
+name: ci
+# One `test` task that runs unit, integration, and lint — locally and in CI.
+defaults:
+  pkg: "./..."
+
+tasks:
+  # `orchstep run test`  (same command on your laptop and in the pipeline)
+  test:
+    desc: "Run unit + integration + lint, then assert they passed"
+    steps:
+      # Independent checks run concurrently; each child's outputs merge into steps.*
+      - name: checks
+        parallel:
+          - name: unit
+            func: shell
+            do: echo "go test {{ vars.pkg }}"
+            outputs:
+              ok: "true"
+          - name: integration
+            func: shell
+            do: echo "go test -tags=integration {{ vars.pkg }}"
+            outputs:
+              ok: "true"
+          - name: lint
+            func: shell
+            do: echo "golangci-lint run"
+            outputs:
+              ok: "true"
+
+      # Fail the whole task unless the checks that matter passed.
+      - name: verify
+        func: assert
+        args:
+          condition: '{{ and (eq steps.unit.ok "true") (eq steps.integration.ok "true") }}'
+          desc: "unit and integration tests must pass"
+
+      - name: report
+        func: shell
+        do: echo "green — unit={{ steps.unit.ok }} integration={{ steps.integration.ok }} lint={{ steps.lint.ok }}"

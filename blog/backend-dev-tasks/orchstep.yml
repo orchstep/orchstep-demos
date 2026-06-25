@@ -1,0 +1,44 @@
+name: orders-service
+defaults:
+  service: orders
+  db_url: "postgres://app@db:5432/orders"
+tasks:
+  dev:
+    steps:
+      - name: deps
+        func: shell
+        do: echo "starting postgres + redis for {{ vars.service }}"
+      - name: migrate
+        task: migrate
+      - name: seed
+        func: shell
+        do: echo "seeding dev data into {{ vars.db_url }}"
+      - name: serve
+        func: shell
+        do: echo "running {{ vars.service }} on :8080"
+
+  migrate:
+    steps:
+      - name: plan
+        func: shell
+        do: echo "pending migrations for {{ vars.db_url }}"
+      - name: apply
+        func: shell
+        do: echo "applying migrations to {{ vars.service }}"
+        catch:
+          - name: rollback
+            func: shell
+            do: echo "rolling back last migration batch"
+
+  test:
+    steps:
+      - name: unit
+        func: shell
+        do: echo "running unit tests for {{ vars.service }}"
+      - name: integration
+        func: shell
+        do: echo "running integration suite for {{ vars.service }}"
+        retry:
+          max_attempts: 3
+          interval: "2s"
+          backoff_rate: 2.0

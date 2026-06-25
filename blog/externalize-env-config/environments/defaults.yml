@@ -1,0 +1,4 @@
+# Always loaded, even without --env. The org-wide baseline.
+replicas: 1
+version: "2.4.0"
+monitoring: none

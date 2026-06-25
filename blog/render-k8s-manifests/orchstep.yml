@@ -1,0 +1,49 @@
+name: k8s-manifests
+# Render Kubernetes manifests from one template, per environment, then apply.
+defaults:
+  app: api
+  image: ghcr.io/acme/api:1.5.0
+  stage: staging
+  replicas: "2"
+  host: staging.example.com
+
+# Per-environment values feed the same templates.
+environments:
+  staging:
+    vars: { stage: staging, replicas: "2", host: staging.example.com }
+  production:
+    vars: { stage: production, replicas: "5", host: example.com }
+
+tasks:
+  # orchstep run apply --env production
+  apply:
+    desc: "Render the Deployment + Ingress for one environment and apply"
+    steps:
+      - name: deployment
+        func: render
+        args:
+          template: |
+            apiVersion: apps/v1
+            kind: Deployment
+            metadata:
+              name: {{ vars.app }}
+              namespace: {{ vars.stage }}
+            spec:
+              replicas: {{ vars.replicas }}
+              template:
+                spec:
+                  containers:
+                    - name: {{ vars.app }}
+                      image: {{ vars.image }}
+        outputs:
+          manifest: "{{ result.output }}"
+
+      - name: ingress
+        func: render
+        do: "host: {{ vars.host }}   # ingress for {{ vars.stage }}"
+        outputs:
+          rule: "{{ result.output }}"
+
+      - name: apply
+        func: shell
+        do: echo "kubectl apply -n {{ vars.stage }} (Deployment {{ vars.app }} x{{ vars.replicas }} + Ingress {{ vars.host }})"

@@ -1,0 +1,40 @@
+name: rotation
+# Rotate a credential on a schedule. A cron job or systemd timer calls this:
+# mint a new value, activate it, verify, then write an audit record.
+defaults:
+  key_name: api-signing-key
+  store: vault
+  stage: production
+
+tasks:
+  # orchstep run rotate --output json   (the timer records the exit code)
+  rotate:
+    desc: "Rotate one credential and record an audit entry"
+    steps:
+      - name: mint
+        func: shell
+        do: echo "rotated-{{ vars.key_name }}"
+        outputs:
+          version: "{{ result.output }}"
+
+      - name: activate
+        func: shell
+        do: echo "activating {{ steps.mint.version }} in {{ vars.store }} for {{ vars.stage }}"
+        retry:
+          max_attempts: 3
+          interval: "2s"
+          backoff_rate: 2.0
+
+      - name: verify
+        func: assert
+        args:
+          condition: '{{ ne steps.mint.version "" }}'
+          message: "a new version must be minted before activation"
+
+      - name: audit
+        func: shell
+        do: echo "AUDIT key={{ vars.key_name }} version={{ steps.mint.version }} store={{ vars.store }} stage={{ vars.stage }}"
+
+      - name: retire
+        func: shell
+        do: echo "scheduling the previous {{ vars.key_name }} for revocation"

@@ -1,0 +1,50 @@
+name: qa-gates
+# QA quality gate: smoke -> sharded run -> quarantine flaky -> report.
+defaults:
+  suite: checkout
+  shards: 4
+
+tasks:
+  # `orchstep run smoke`
+  smoke:
+    steps:
+      - name: health
+        func: shell
+        do: echo "GET /healthz -> 200 ok"
+      - name: login
+        func: shell
+        do: echo "smoke - login flow passed"
+
+  # `orchstep run test --var shards=4`
+  test:
+    steps:
+      - name: gate_smoke
+        task: smoke
+      - name: run_shards
+        loop:
+          count: 4
+        func: shell
+        do: echo "running shard {{ loop.index }} of {{ vars.shards }}"
+      - name: quarantine
+        func: shell
+        do: echo "moving known-flaky specs to the quarantine suite"
+        catch:
+          - name: note
+            func: shell
+            do: echo "quarantine step failed, continuing"
+      - name: report
+        func: shell
+        do: echo "suite {{ vars.suite }} green across {{ vars.shards }} shards"
+
+  # `orchstep run repro --var case=PROJ-481`
+  repro:
+    steps:
+      - name: seed
+        func: shell
+        do: echo "seeding fixture for case {{ vars.case }}"
+      - name: replay
+        func: shell
+        do: echo "replaying reported steps for {{ vars.case }}"
+      - name: capture
+        func: shell
+        do: echo "captured logs + screenshot for {{ vars.case }}"

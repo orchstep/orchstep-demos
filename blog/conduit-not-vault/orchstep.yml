@@ -1,0 +1,18 @@
+name: conduit
+# A secret is always a reference to a resolver, never a literal in YAML.
+# The cmd here is a stand-in (printf) so the demo runs with no tooling installed;
+# in real life it is `op read ...`, `vault kv get ...`, `aws secretsmanager ...`.
+secrets:
+  API_TOKEN: { cmd: "printf 'tok_abc123'" }
+tasks:
+  call:
+    # The tool receives the REAL value via AUTH; logs and history only ever show ***.
+    env:
+      AUTH: "{{ secrets.API_TOKEN }}"
+    steps:
+      - name: use
+        func: shell
+        do: 'echo "calling api with token={{ secrets.API_TOKEN }}"'
+      - name: confirm
+        func: shell
+        do: 'echo "the tool got the real value via $AUTH"'

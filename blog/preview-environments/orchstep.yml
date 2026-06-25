@@ -1,0 +1,38 @@
+name: preview
+# Spin one up:  orchstep run up   --var pr=482
+# Tear it down: orchstep run down --var pr=482
+defaults:
+  pr: "0"
+  app: acme-web
+
+tasks:
+  up:
+    steps:
+      # Derive a stable namespace from the PR number.
+      - name: namespace
+        func: shell
+        do: echo "pr-{{ vars.pr }}"
+        outputs:
+          ns: '{{ result.output | trim }}'
+
+      - name: provision
+        func: shell
+        do: echo "creating preview env {{ steps.namespace.ns }} for {{ vars.app }}"
+
+      - name: deploy
+        func: shell
+        do: echo "deploying {{ vars.app }} into {{ steps.namespace.ns }}"
+
+      - name: url
+        func: shell
+        do: echo "preview ready at https://{{ steps.namespace.ns }}.preview.acme.dev"
+
+  down:
+    steps:
+      - name: teardown
+        func: shell
+        do: echo "tearing down preview env pr-{{ vars.pr }} for {{ vars.app }}"
+
+      - name: confirm
+        func: shell
+        do: echo "preview env pr-{{ vars.pr }} removed"

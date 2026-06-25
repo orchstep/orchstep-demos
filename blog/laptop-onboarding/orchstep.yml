@@ -1,0 +1,36 @@
+name: onboarding
+# One command to take a fresh laptop to "ready to commit".
+# Idempotent: re-running is safe — it checks before it installs.
+defaults:
+  installed: "false"
+
+tasks:
+  # `orchstep run setup`
+  setup:
+    steps:
+      - name: detect
+        func: shell
+        do: echo "checking for git, node, docker..."
+        outputs:
+          tools: "git node docker"
+      - name: assert-prerequisites
+        func: assert
+        args:
+          condition: '{{ ne steps.detect.tools "" }}'
+          message: "expected git, node and docker on PATH"
+      - name: install
+        if: '{{ eq vars.installed "false" }}'
+        then:
+          - name: brew-bundle
+            func: shell
+            do: echo "brew bundle --file Brewfile"
+        else:
+          - name: skip
+            func: shell
+            do: echo "tools already present, skipping install"
+      - name: configure
+        func: shell
+        do: echo "linking dotfiles and writing config (safe to repeat)"
+      - name: done
+        func: shell
+        do: echo "laptop is ready to commit"

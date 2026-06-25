@@ -1,0 +1,32 @@
+name: ship-path
+desc: "The sanctioned build/verify/deploy path every service uses."
+defaults:
+  service: "service"
+  target: staging
+
+tasks:
+  build:
+    desc: "Build with the standard toolchain"
+    steps:
+      - name: compile
+        func: shell
+        do: echo "building {{ vars.service }} with the standard toolchain"
+        outputs:
+          artifact: "{{ vars.service }}-build"
+
+  verify:
+    desc: "Run the mandatory gates every service must pass"
+    steps:
+      - name: scan
+        func: shell
+        do: echo "mandatory security + license scan for {{ vars.service }}"
+      - name: test
+        func: shell
+        do: echo "standard test gate for {{ vars.service }}"
+
+  deploy:
+    desc: "Deploy through the sanctioned pipeline"
+    steps:
+      - name: ship
+        func: shell
+        do: echo "deploying {{ vars.service }} to {{ vars.target }} via the sanctioned pipeline"

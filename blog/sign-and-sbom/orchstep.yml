@@ -1,0 +1,31 @@
+name: supply-chain
+# Wrap the supply-chain steps you keep forgetting: generate an SBOM,
+# sign the image, then verify the signature before you call it shipped.
+defaults:
+  image: ghcr.io/acme/api:1.4.0
+
+tasks:
+  # `orchstep run attest`
+  attest:
+    steps:
+      - name: sbom
+        func: shell
+        do: echo "syft {{ vars.image }} -o spdx-json=sbom.json"
+
+      - name: sign
+        func: shell
+        do: echo "cosign sign --yes {{ vars.image }}"
+        retry:
+          max_attempts: 3
+          interval: "1s"
+          backoff_rate: 2.0
+
+      - name: verify
+        func: shell
+        do: echo "cosign verify {{ vars.image }}"
+
+      - name: gate
+        func: assert
+        args:
+          condition: '{{ ne vars.image "" }}'
+          message: "an image reference is required to sign"

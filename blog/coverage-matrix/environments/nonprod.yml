@@ -1,0 +1,2 @@
+# group layer — sets shared vars, but NOT target.
+monitoring: basic

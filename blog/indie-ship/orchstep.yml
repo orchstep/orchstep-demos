@@ -1,0 +1,47 @@
+name: side-project
+# One binary, every chore a solo founder repeats: ship, back up, digest.
+defaults:
+  app: my-saas
+  tier: production
+
+tasks:
+  # `orchstep run ship`
+  ship:
+    steps:
+      - name: build
+        func: shell
+        do: echo "building {{ vars.app }}"
+      - name: deploy
+        func: shell
+        do: echo "deploying {{ vars.app }} to {{ vars.tier }}"
+        retry:
+          max_attempts: 3
+          interval: "1s"
+          backoff_rate: 2.0
+        catch:
+          - name: rollback
+            func: shell
+            do: echo "rollback {{ vars.app }}"
+      - name: smoke
+        func: shell
+        do: echo "GET / -> 200"
+
+  # `orchstep run backup` (point a cron at this)
+  backup:
+    steps:
+      - name: dump
+        func: shell
+        do: echo "dumping database snapshot"
+      - name: store
+        func: shell
+        do: echo "uploaded snapshot to object storage"
+
+  # `orchstep run digest`
+  digest:
+    steps:
+      - name: signups
+        func: shell
+        do: echo "new signups today - 12"
+      - name: revenue
+        func: shell
+        do: echo "MRR delta +$240"

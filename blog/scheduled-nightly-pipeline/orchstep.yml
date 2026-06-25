@@ -1,0 +1,32 @@
+name: nightly
+# The pipeline a nightly schedule calls. The cron lives in your CI runner;
+# this is the work it triggers, plus a summary that always runs.
+defaults:
+  run_id: "nightly"
+
+tasks:
+  # `orchstep run nightly`
+  nightly:
+    steps:
+      - name: fetch
+        func: shell
+        do: echo "pulling latest main for the {{ vars.run_id }} build"
+
+      - name: build
+        func: shell
+        do: echo "building the {{ vars.run_id }} artifact"
+
+      - name: regression
+        func: shell
+        do: echo "running the full regression suite"
+        retry:
+          max_attempts: 2
+          interval: "1s"
+
+      - name: report
+        func: shell
+        do: echo "{{ vars.run_id }} pipeline complete"
+        finally:
+          - name: summary
+            func: shell
+            do: echo "posting the {{ vars.run_id }} summary to the team channel"
